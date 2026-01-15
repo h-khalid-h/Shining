@@ -16,8 +16,18 @@ export interface DriftAlert {
 /**
  * Detect drift and generate appropriate alert
  */
-export function detectDrift(signal: SignalState): DriftAlert | null {
+export function detectDrift(signal: SignalState | null | undefined): DriftAlert | null {
+    // SSR safety check
+    if (typeof window === 'undefined' || !signal) {
+        return null;
+    }
+
     const drift = signal.drift;
+
+    // Additional null check for drift value
+    if (drift === null || drift === undefined) {
+        return null;
+    }
 
     // No alert if drift is low
     if (drift < 20) {
@@ -60,8 +70,13 @@ export function detectDrift(signal: SignalState): DriftAlert | null {
  */
 export function shouldShowDriftAlert(
     lastShownTimestamp: number | null,
-    currentDrift: number,
+    currentDrift: number | undefined,
 ): boolean {
+    // SSR safety check
+    if (typeof window === 'undefined' || currentDrift === undefined || currentDrift === null) {
+        return false;
+    }
+
     // Don't show if drift is low
     if (currentDrift < 20) {
         return false;
