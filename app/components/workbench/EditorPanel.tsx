@@ -9,9 +9,9 @@ import {
   type OnSaveCallback as OnEditorSave,
   type OnScrollCallback as OnEditorScroll,
 } from '~/components/editor/codemirror/CodeMirrorEditor';
-import { IconButton } from '~/components/ui/IconButton';
+import { Button } from '~/components/ui/Button';
+import { Tooltip } from '~/components/ui/Tooltip';
 import { PanelHeader } from '~/components/ui/PanelHeader';
-import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { shortcutEventEmitter } from '~/lib/hooks';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
@@ -150,15 +150,27 @@ export const EditorPanel = memo(
                   <div className="flex items-center flex-1 text-sm">
                     <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
                     {activeFileUnsaved && (
-                      <div className="flex gap-1 ml-auto -mr-1.5">
-                        <PanelHeaderButton onClick={onFileSave}>
-                          <div className="i-ph:floppy-disk-duotone" />
-                          Save
-                        </PanelHeaderButton>
-                        <PanelHeaderButton onClick={onFileReset}>
-                          <div className="i-ph:clock-counter-clockwise-duotone" />
-                          Reset
-                        </PanelHeaderButton>
+                      <div className="flex items-center gap-1 ml-auto -mr-1.5">
+                        <Tooltip content="Save file" shortcut="⌘S" side="bottom">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon="i-ph:floppy-disk-duotone"
+                            disabled={!activeFileUnsaved}
+                            aria-label="Save file"
+                            onClick={onFileSave}
+                          />
+                        </Tooltip>
+                        <Tooltip content="Reset changes" side="bottom">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon="i-ph:clock-counter-clockwise-duotone"
+                            disabled={!activeFileUnsaved}
+                            aria-label="Reset file"
+                            onClick={onFileReset}
+                          />
+                        </Tooltip>
                       </div>
                     )}
                   </div>
@@ -220,12 +232,15 @@ export const EditorPanel = memo(
                     </button>
                   );
                 })}
-                {terminalCount < MAX_TERMINALS && <IconButton icon="i-ph:plus" size="md" onClick={addTerminal} />}
-                <IconButton
+                {terminalCount < MAX_TERMINALS && (
+                  <Button variant="ghost" size="md" icon="i-ph:plus" aria-label="Add terminal" onClick={addTerminal} />
+                )}
+                <Button
+                  variant="ghost"
+                  size="md"
                   className="ml-auto"
                   icon="i-ph:caret-down"
-                  title="Close"
-                  size="md"
+                  aria-label="Close terminal"
                   onClick={() => workbenchStore.toggleTerminal(false)}
                 />
               </div>

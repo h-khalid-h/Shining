@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react';
 import type { Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useAnimate } from 'framer-motion';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
 import { useChatHistory } from '~/lib/persistence';
@@ -68,9 +68,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   useShortcuts();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
-
   const { showChat } = useStore(chatStore);
 
   const [animationScope, animate] = useAnimate();
@@ -90,6 +87,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
   const { parsedMessages, parseMessages } = useMessageParser();
 
+  const chatStarted = useStore(chatStore).started;
   const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
   useEffect(() => {
@@ -142,8 +140,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     ]);
 
     chatStore.setKey('started', true);
-
-    setChatStarted(true);
   };
 
   const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
@@ -204,7 +200,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       textareaRef={textareaRef}
       input={input}
       showChat={showChat}
-      chatStarted={chatStarted}
       isStreaming={isLoading}
       enhancingPrompt={enhancingPrompt}
       promptEnhanced={promptEnhanced}

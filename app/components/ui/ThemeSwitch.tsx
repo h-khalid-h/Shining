@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { memo, useEffect, useState } from 'react';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
-import { IconButton } from './IconButton';
+import { Button } from './Button';
 
 interface ThemeSwitchProps {
   className?: string;
@@ -17,11 +17,12 @@ export const ThemeSwitch = memo(({ className }: ThemeSwitchProps) => {
 
   return (
     domLoaded && (
-      <IconButton
+      <Button
+        variant="ghost"
+        size="lg"
         className={className}
         icon={theme === 'dark' ? 'i-ph-sun-dim-duotone' : 'i-ph-moon-stars-duotone'}
-        size="xl"
-        title="Toggle Theme"
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
         onClick={toggleTheme}
       />
     )

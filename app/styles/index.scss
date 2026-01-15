@@ -12,3 +12,19 @@ body {
   height: 100%;
   width: 100%;
 }
+
+/* Mobile Responsive Overrides */
+@media (max-width: 768px) {
+  :root {
+    --chat-min-width: 100vw;
+    --workbench-width: 100vw;
+    --workbench-left: 0;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root {
+    --chat-min-width: 50vw;
+    --workbench-width: 50vw;
+  }
+}

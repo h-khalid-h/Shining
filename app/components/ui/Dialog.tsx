@@ -3,7 +3,8 @@ import { motion, type Variants } from 'framer-motion';
 import React, { memo, type ReactNode } from 'react';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
-import { IconButton } from './IconButton';
+import { Button } from './Button';
+import { FocusTrap } from './FocusTrap';
 
 export { Close as DialogClose, Root as DialogRoot } from '@radix-ui/react-dialog';
 
@@ -122,10 +123,17 @@ export const Dialog = memo(({ className, children, onBackdrop, onClose }: Dialog
           exit="closed"
           variants={dialogVariants}
         >
-          {children}
-          <RadixDialog.Close asChild onClick={onClose}>
-            <IconButton icon="i-ph:x" className="absolute top-[10px] right-[10px]" />
-          </RadixDialog.Close>
+          <FocusTrap active onEscape={() => onClose?.(undefined as any)} restoreFocus>
+            {children}
+            <RadixDialog.Close asChild onClick={onClose}>
+              <Button
+                variant="ghost"
+                icon="i-ph:x"
+                aria-label="Close dialog"
+                className="absolute top-[10px] right-[10px]"
+              />
+            </RadixDialog.Close>
+          </FocusTrap>
         </motion.div>
       </RadixDialog.Content>
     </RadixDialog.Portal>

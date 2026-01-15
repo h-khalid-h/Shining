@@ -2,6 +2,9 @@ import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { StreamingTextResponse, parseStreamPart } from 'ai';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { stripIndents } from '~/utils/stripIndent';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('Enhancer');
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -50,7 +53,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
 
     return new StreamingTextResponse(transformedStream);
   } catch (error) {
-    console.log(error);
+    logger.error('Failed to enhance prompt:', error);
 
     throw new Response(null, {
       status: 500,

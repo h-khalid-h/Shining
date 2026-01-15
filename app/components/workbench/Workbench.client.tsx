@@ -7,8 +7,7 @@ import {
   type OnChangeCallback as OnEditorChange,
   type OnScrollCallback as OnEditorScroll,
 } from '~/components/editor/codemirror/CodeMirrorEditor';
-import { IconButton } from '~/components/ui/IconButton';
-import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
+import { Button } from '~/components/ui/Button';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -122,20 +121,25 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                 <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                 <div className="ml-auto" />
                 {selectedView === 'code' && (
-                  <PanelHeaderButton
-                    className="mr-1 text-sm"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon="i-ph:terminal"
+                    iconPosition="start"
+                    className="mr-1"
                     onClick={() => {
                       workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                     }}
                   >
-                    <div className="i-ph:terminal" />
                     Toggle Terminal
-                  </PanelHeaderButton>
+                  </Button>
                 )}
-                <IconButton
+                <Button
+                  variant="ghost"
+                  size="md"
                   icon="i-ph:x-circle"
+                  aria-label="Close workbench"
                   className="-mr-1"
-                  size="xl"
                   onClick={() => {
                     workbenchStore.showWorkbench.set(false);
                   }}

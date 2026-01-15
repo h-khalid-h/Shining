@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef } from 'react';
-import { IconButton } from '~/components/ui/IconButton';
+import { Button } from '~/components/ui/Button';
 import type { PreviewInfo } from '~/lib/stores/previews';
 
 interface PortDropdownProps {
@@ -48,7 +48,12 @@ export const PortDropdown = memo(
 
     return (
       <div className="relative z-port-dropdown" ref={dropdownRef}>
-        <IconButton icon="i-ph:plug" onClick={() => setIsDropdownOpen(!isDropdownOpen)} />
+        <Button
+          variant="ghost"
+          icon="i-ph:plug"
+          aria-label="Select port"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        />
         {isDropdownOpen && (
           <div className="absolute right-0 mt-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded shadow-sm min-w-[140px] dropdown-animation">
             <div className="px-4 py-2 border-b border-bolt-elements-borderColor text-sm font-semibold text-bolt-elements-textPrimary">

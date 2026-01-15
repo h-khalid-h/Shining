@@ -211,7 +211,15 @@ export class WorkbenchStore {
   }
 
   abortAllActions() {
-    // TODO: what do we wanna do and how do we wanna recover from this?
+    /**
+     * NOTE: This is intentionally not implemented yet.
+     * ActionRunner doesn't have an abortAction() method.
+     * This would require:
+     * 1. Adding abortAction() to ActionRunner
+     * 2. Implementing proper cleanup for running actions
+     * 3. Handling state recovery after abort
+     * Currently called from Chat.client.tsx abort() but has no effect.
+     */
   }
 
   addArtifact({ messageId, title, id }: ArtifactCallbackData) {

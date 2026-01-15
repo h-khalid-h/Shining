@@ -2,11 +2,14 @@ import type { Message } from 'ai';
 import React, { type RefCallback } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
-import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
+import { useStore } from '@nanostores/react';
+import { chatStore } from '~/lib/stores/chat';
+import { motion } from 'framer-motion';
+import { Button } from '~/components/ui/Button';
 
 import styles from './BaseChat.module.scss';
 
@@ -15,7 +18,6 @@ interface BaseChatProps {
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
   showChat?: boolean;
-  chatStarted?: boolean;
   isStreaming?: boolean;
   messages?: Message[];
   enhancingPrompt?: boolean;
@@ -28,11 +30,11 @@ interface BaseChatProps {
 }
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Build a todo app in React using Tailwind' },
-  { text: 'Build a simple blog using Astro' },
-  { text: 'Create a cookie consent form using Material UI' },
-  { text: 'Make a space invaders game' },
-  { text: 'How do I center a div?' },
+  { text: 'Build a todo app in React using Tailwind', icon: 'i-ph:code-duotone' },
+  { text: 'Build a simple blog using Astro', icon: 'i-ph:pen-duotone' },
+  { text: 'Create a cookie consent form using Material UI', icon: 'i-ph:cookie-duotone' },
+  { text: 'Make a space invaders game', icon: 'i-ph:game-controller-duotone' },
+  { text: 'How do I center a div?', icon: 'i-ph:question-duotone' },
 ];
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -44,7 +46,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       messageRef,
       scrollRef,
       showChat = true,
-      chatStarted = false,
       isStreaming = false,
       enhancingPrompt = false,
       promptEnhanced = false,
@@ -57,6 +58,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
+    const chatStarted = useStore(chatStore).started;
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
     return (
@@ -70,16 +72,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       >
         <ClientOnly>{() => <Menu />}</ClientOnly>
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
+          <div
+            className={classNames(
+              styles.Chat,
+              'flex flex-col flex-grow w-full md:min-w-[var(--chat-min-width)] h-full',
+            )}
+          >
             {!chatStarted && (
-              <div id="intro" className="mt-[26vh] max-w-chat mx-auto">
+              <motion.div
+                id="intro"
+                className="mt-[26vh] max-w-chat mx-auto"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              >
                 <h1 className="text-5xl text-center font-bold text-bolt-elements-textPrimary mb-2">
                   Where ideas begin
                 </h1>
                 <p className="mb-4 text-center text-bolt-elements-textSecondary">
                   Bring ideas to life in seconds or get help on existing projects.
                 </p>
-              </div>
+              </motion.div>
             )}
             <div
               className={classNames('pt-6 px-6', {
@@ -151,20 +164,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </ClientOnly>
                   <div className="flex justify-between text-sm p-4 pt-2">
                     <div className="flex gap-1 items-center">
-                      <IconButton
-                        title="Enhance prompt"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Enhance prompt"
                         disabled={input.length === 0 || enhancingPrompt}
                         className={classNames({
-                          'opacity-100!': enhancingPrompt,
                           'text-bolt-elements-item-contentAccent! pr-1.5 enabled:hover:bg-bolt-elements-item-backgroundAccent!':
                             promptEnhanced,
+                          'pr-1.5': !promptEnhanced,
                         })}
-                        onClick={() => enhancePrompt?.()}
+                        onClick={() => {
+                          enhancePrompt?.();
+                        }}
                       >
                         {enhancingPrompt ? (
                           <>
                             <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl"></div>
-                            <div className="ml-1.5">Enhancing prompt...</div>
                           </>
                         ) : (
                           <>
@@ -172,7 +188,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             {promptEnhanced && <div className="ml-1.5">Prompt enhanced</div>}
                           </>
                         )}
-                      </IconButton>
+                      </Button>
                     </div>
                     {input.length > 3 ? (
                       <div className="text-xs text-bolt-elements-textTertiary">
@@ -185,24 +201,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             </div>
             {!chatStarted && (
-              <div id="examples" className="relative w-full max-w-xl mx-auto mt-8 flex justify-center">
+              <motion.div
+                id="examples"
+                className="relative w-full max-w-chat mx-auto mt-8 flex justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
                 <div className="flex flex-col space-y-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_180%)] hover:[mask-image:none]">
-                  {EXAMPLE_PROMPTS.map((examplePrompt, index) => {
-                    return (
-                      <button
-                        key={index}
-                        onClick={(event) => {
-                          sendMessage?.(event, examplePrompt.text);
-                        }}
-                        className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
-                      >
-                        {examplePrompt.text}
-                        <div className="i-ph:arrow-bend-down-left" />
-                      </button>
-                    );
-                  })}
+                  {EXAMPLE_PROMPTS.map((examplePrompt, index) => (
+                    <motion.button
+                      key={index}
+                      onClick={(event) => {
+                        sendMessage?.(event, examplePrompt.text);
+                      }}
+                      className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+                    >
+                      <div className="text-lg">
+                        <div className={examplePrompt.icon} />
+                      </div>
+                      {examplePrompt.text}
+                      <div className="i-ph:arrow-right text-lg" />
+                    </motion.button>
+                  ))}
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>

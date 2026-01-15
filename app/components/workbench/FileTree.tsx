@@ -168,9 +168,9 @@ function Folder({ folder: { depth, name }, collapsed, selected = false, onClick 
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames({
+      iconClasses={classNames('transition-transform duration-200', {
         'i-ph:caret-right scale-98': collapsed,
-        'i-ph:caret-down scale-98': !collapsed,
+        'i-ph:caret-down scale-98 rotate-0': !collapsed,
       })}
       onClick={onClick}
     >
@@ -189,18 +189,18 @@ interface FileProps {
 function File({ file: { depth, name }, onClick, selected, unsavedChanges = false }: FileProps) {
   return (
     <NodeButton
-      className={classNames('group', {
+      className={classNames('group transition-colors duration-150', {
         'bg-transparent hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-item-contentDefault': !selected,
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames('i-ph:file-duotone scale-98', {
+      iconClasses={classNames('i-ph:file-duotone scale-98 transition-colors duration-150', {
         'group-hover:text-bolt-elements-item-contentActive': !selected,
       })}
       onClick={onClick}
     >
       <div
-        className={classNames('flex items-center', {
+        className={classNames('flex items-center transition-colors duration-150', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
       >

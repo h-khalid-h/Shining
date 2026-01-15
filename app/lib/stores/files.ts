@@ -191,7 +191,8 @@ export class FilesStore {
     try {
       return utf8TextDecoder.decode(buffer);
     } catch (error) {
-      console.log(error);
+      logger.warn('Failed to decode file content as UTF-8:', error);
+
       return '';
     }
   }

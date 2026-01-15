@@ -91,7 +91,7 @@ export class ActionRunner {
         return this.#executeAction(actionId);
       })
       .catch((error) => {
-        console.error('Action failed:', error);
+        logger.error('Action failed:', error);
       });
   }
 
@@ -139,7 +139,7 @@ export class ActionRunner {
     process.output.pipeTo(
       new WritableStream({
         write(data) {
-          console.log(data);
+          logger.debug('Shell output:', data);
         },
       }),
     );
