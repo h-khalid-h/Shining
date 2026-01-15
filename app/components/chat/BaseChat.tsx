@@ -1,6 +1,5 @@
 import type { Message } from 'ai';
 import React, { type RefCallback } from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
@@ -70,7 +69,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         )}
         data-chat-visible={showChat}
       >
-        <ClientOnly>{() => <Menu />}</ClientOnly>
+        <Menu />
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
           <div
             className={classNames(
@@ -99,18 +98,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 'h-full flex flex-col': chatStarted,
               })}
             >
-              <ClientOnly>
-                {() => {
-                  return chatStarted ? (
-                    <Messages
-                      ref={messageRef}
-                      className="flex flex-col w-full flex-1 max-w-chat px-4 pb-6 mx-auto z-1"
-                      messages={messages}
-                      isStreaming={isStreaming}
-                    />
-                  ) : null;
-                }}
-              </ClientOnly>
+              {chatStarted ? (
+                <Messages
+                  ref={messageRef}
+                  className="flex flex-col w-full flex-1 max-w-chat px-4 pb-6 mx-auto z-1"
+                  messages={messages}
+                  isStreaming={isStreaming}
+                />
+              ) : null}
               <div
                 className={classNames('relative w-full max-w-chat mx-auto z-prompt', {
                   'sticky bottom-0': chatStarted,
@@ -146,22 +141,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     placeholder="How can Bolt help you today?"
                     translate="no"
                   />
-                  <ClientOnly>
-                    {() => (
-                      <SendButton
-                        show={input.length > 0 || isStreaming}
-                        isStreaming={isStreaming}
-                        onClick={(event) => {
-                          if (isStreaming) {
-                            handleStop?.();
-                            return;
-                          }
+                  <SendButton
+                    show={input.length > 0 || isStreaming}
+                    isStreaming={isStreaming}
+                    onClick={(event) => {
+                      if (isStreaming) {
+                        handleStop?.();
+                        return;
+                      }
 
-                          sendMessage?.(event);
-                        }}
-                      />
-                    )}
-                  </ClientOnly>
+                      sendMessage?.(event);
+                    }}
+                  />
                   <div className="flex justify-between text-sm p-4 pt-2">
                     <div className="flex gap-1 items-center">
                       <Button
@@ -231,7 +222,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </motion.div>
             )}
           </div>
-          <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>
+          <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />
         </div>
       </div>
     );
