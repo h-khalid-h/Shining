@@ -1,6 +1,6 @@
-import { type RouteConfig } from '@react-router/dev/routes';
+import { type RouteConfig, index, route } from '@react-router/dev/routes';
 
 export default [
-    // All routes are file-based in app/routes/
-    // React Router will auto-discover them
+    index('routes/_index.tsx'),
+    route('chat/:id', 'routes/chat.$id.tsx'),
 ] satisfies RouteConfig;
