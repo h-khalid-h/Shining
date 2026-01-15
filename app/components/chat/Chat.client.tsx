@@ -1,229 +1,67 @@
-import { useStore } from '@nanostores/react';
-import type { Message } from 'ai';
 import { useChat } from 'ai/react';
-import { useAnimate } from 'framer-motion';
-import { memo, useEffect, useRef } from 'react';
-import { cssTransition, toast, ToastContainer } from 'react-toastify';
-import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
-import { useChatHistory } from '~/lib/persistence';
-import { chatStore } from '~/lib/stores/chat';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { fileModificationsToHTML } from '~/utils/diff';
-import { cubicEasingFn } from '~/utils/easings';
-import { createScopedLogger, renderLogger } from '~/utils/logger';
-import { BaseChat } from './BaseChat';
-
-const toastAnimation = cssTransition({
-  enter: 'animated fadeInRight',
-  exit: 'animated fadeOutRight',
-});
-
-const logger = createScopedLogger('Chat');
+import { useState } from 'react';
+import { Button } from '~/components/ui/Button';
 
 export function Chat() {
-  renderLogger.trace('Chat');
-
-  const { ready, initialMessages, storeMessageHistory } = useChatHistory();
-
-  return (
-    <>
-      {ready && <ChatImpl initialMessages={initialMessages} storeMessageHistory={storeMessageHistory} />}
-      <ToastContainer
-        closeButton={({ closeToast }) => {
-          return (
-            <button className="Toastify__close-button" onClick={closeToast}>
-              <div className="i-ph:x text-lg" />
-            </button>
-          );
-        }}
-        icon={({ type }) => {
-          /**
-           * @todo Handle more types if we need them. This may require extra color palettes.
-           */
-          switch (type) {
-            case 'success': {
-              return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
-            }
-            case 'error': {
-              return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
-            }
-          }
-
-          return undefined;
-        }}
-        position="bottom-right"
-        pauseOnFocusLoss
-        transition={toastAnimation}
-      />
-    </>
-  );
-}
-
-interface ChatProps {
-  initialMessages: Message[];
-  storeMessageHistory: (messages: Message[]) => Promise<void>;
-}
-
-export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProps) => {
-  useShortcuts();
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { showChat } = useStore(chatStore);
-
-  const [animationScope, animate] = useAnimate();
-
-  const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
-    onError: (error) => {
-      logger.error('Request failed\n\n', error);
-      toast.error('There was an error processing your request');
-    },
-    onFinish: () => {
-      logger.debug('Finished streaming');
-    },
-    initialMessages,
   });
 
-  const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
-  const { parsedMessages, parseMessages } = useMessageParser();
-
-  const chatStarted = useStore(chatStore).started;
-  const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
-
-  useEffect(() => {
-    chatStore.setKey('started', initialMessages.length > 0);
-  }, []);
-
-  useEffect(() => {
-    parseMessages(messages, isLoading);
-
-    if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
-    }
-  }, [messages, isLoading, parseMessages]);
-
-  const scrollTextArea = () => {
-    const textarea = textareaRef.current;
-
-    if (textarea) {
-      textarea.scrollTop = textarea.scrollHeight;
-    }
-  };
-
-  const abort = () => {
-    stop();
-    chatStore.setKey('aborted', true);
-    workbenchStore.abortAllActions();
-  };
-
-  useEffect(() => {
-    const textarea = textareaRef.current;
-
-    if (textarea) {
-      textarea.style.height = 'auto';
-
-      const scrollHeight = textarea.scrollHeight;
-
-      textarea.style.height = `${Math.min(scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
-      textarea.style.overflowY = scrollHeight > TEXTAREA_MAX_HEIGHT ? 'auto' : 'hidden';
-    }
-  }, [input, textareaRef]);
-
-  const runAnimation = async () => {
-    if (chatStarted) {
-      return;
-    }
-
-    await Promise.all([
-      animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
-      animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
-    ]);
-
-    chatStore.setKey('started', true);
-  };
-
-  const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
-    const _input = messageInput || input;
-
-    if (_input.length === 0 || isLoading) {
-      return;
-    }
-
-    /**
-     * @note (delm) Usually saving files shouldn't take long but it may take longer if there
-     * many unsaved files. In that case we need to block user input and show an indicator
-     * of some kind so the user is aware that something is happening. But I consider the
-     * happy case to be no unsaved files and I would expect users to save their changes
-     * before they send another message.
-     */
-    await workbenchStore.saveAllFiles();
-
-    const fileModifications = workbenchStore.getFileModifcations();
-
-    chatStore.setKey('aborted', false);
-
-    runAnimation();
-
-    if (fileModifications !== undefined) {
-      const diff = fileModificationsToHTML(fileModifications);
-
-      /**
-       * If we have file modifications we append a new user message manually since we have to prefix
-       * the user input with the file modifications and we don't want the new user input to appear
-       * in the prompt. Using `append` is almost the same as `handleSubmit` except that we have to
-       * manually reset the input and we'd have to manually pass in file attachments. However, those
-       * aren't relevant here.
-       */
-      append({ role: 'user', content: `${diff}\n\n${_input}` });
-
-      /**
-       * After sending a new message we reset all modifications since the model
-       * should now be aware of all the changes.
-       */
-      workbenchStore.resetAllFileModifications();
-    } else {
-      append({ role: 'user', content: _input });
-    }
-
-    setInput('');
-
-    resetEnhancer();
-
-    textareaRef.current?.blur();
-  };
-
-  const [messageRef, scrollRef] = useSnapScroll();
-
   return (
-    <BaseChat
-      ref={animationScope}
-      textareaRef={textareaRef}
-      input={input}
-      showChat={showChat}
-      isStreaming={isLoading}
-      enhancingPrompt={enhancingPrompt}
-      promptEnhanced={promptEnhanced}
-      sendMessage={sendMessage}
-      messageRef={messageRef}
-      scrollRef={scrollRef}
-      handleInputChange={handleInputChange}
-      handleStop={abort}
-      messages={messages.map((message, i) => {
-        if (message.role === 'user') {
-          return message;
-        }
+    <div className="flex flex-col h-full w-full">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center max-w-2xl">
+              <h2 className="text-2xl font-semibold mb-4">Start a conversation</h2>
+              <p className="text-gray-600">
+                Ask me anything about your goals, projects, or strategic planning.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`p-4 rounded-lg ${message.role === 'user'
+                    ? 'bg-blue-100 ml-auto max-w-[80%]'
+                    : 'bg-gray-100 mr-auto max-w-[80%]'
+                  }`}
+              >
+                <div className="font-semibold mb-1">
+                  {message.role === 'user' ? 'You' : 'Shining AI'}
+                </div>
+                <div className="whitespace-pre-wrap">{message.content}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-        return {
-          ...message,
-          content: parsedMessages[i] || '',
-        };
-      })}
-      enhancePrompt={() => {
-        enhancePrompt(input, (input) => {
-          setInput(input);
-          scrollTextArea();
-        });
-      }}
-    />
+      {/* Input Area */}
+      <div className="border-t p-4">
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              placeholder="Type your message..."
+              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+            />
+            <Button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              loading={isLoading}
+            >
+              Send
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
-});
+}
