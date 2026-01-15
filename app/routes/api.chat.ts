@@ -10,6 +10,11 @@ import { shouldExtract, logExtraction } from '~/lib/intelligence/extraction-logg
 
 const logger = createScopedLogger('ChatAPI');
 
+// Helper to get env vars from either cloudflare context or process.env
+function getEnv(context: Route.ActionArgs['context']) {
+  return context.cloudflare?.env || process.env;
+}
+
 export async function action(args: Route.ActionArgs) {
   return chatAction(args);
 }
@@ -20,6 +25,9 @@ async function chatAction({ context, request }: Route.ActionArgs) {
 
   const { messages } = await request.json<{ messages: Messages }>();
 
+  // Get environment variables
+  const env = getEnv(context);
+
   // Run background extraction if user is authenticated and should extract
   const messageCount = messages.length;
   const shouldRunExtraction = shouldExtract(messageCount);
@@ -27,14 +35,14 @@ async function chatAction({ context, request }: Route.ActionArgs) {
   if (
     userId &&
     shouldRunExtraction &&
-    context.cloudflare.env.ANTHROPIC_API_KEY &&
-    context.cloudflare.env.NEO4J_URI
+    env.ANTHROPIC_API_KEY &&
+    env.NEO4J_URI
   ) {
     const integration = new IntegrationService({
-      anthropicApiKey: context.cloudflare.env.ANTHROPIC_API_KEY,
-      neo4jUri: context.cloudflare.env.NEO4J_URI,
-      neo4jUsername: context.cloudflare.env.NEO4J_USERNAME || 'neo4j',
-      neo4jPassword: context.cloudflare.env.NEO4J_PASSWORD,
+      anthropicApiKey: env.ANTHROPIC_API_KEY,
+      neo4jUri: env.NEO4J_URI,
+      neo4jUsername: env.NEO4J_USERNAME || 'neo4j',
+      neo4jPassword: env.NEO4J_PASSWORD,
     });
 
     const startTime = Date.now();
@@ -96,13 +104,14 @@ async function chatAction({ context, request }: Route.ActionArgs) {
         messages.push({ role: 'assistant', content });
         messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
-        const result = await streamText(messages, context.cloudflare.env, options);
+        const result = await streamText(messages, env, options);
 
         return stream.switchSource(result.toAIStream());
       },
     };
 
-    const result = await streamText(messages, context.cloudflare.env, options);
+    const result = await streamText(messages, env, options);
+
 
     stream.switchSource(result.toAIStream());
 
