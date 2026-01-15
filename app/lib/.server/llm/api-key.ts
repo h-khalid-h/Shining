@@ -1,4 +1,8 @@
 import { env } from 'node:process';
+import { config } from 'dotenv';
+
+// Load .env file in development
+config();
 
 export function getAPIKey(cloudflareEnv?: Env) {
   /**
@@ -7,3 +11,4 @@ export function getAPIKey(cloudflareEnv?: Env) {
    */
   return env.ANTHROPIC_API_KEY || cloudflareEnv?.ANTHROPIC_API_KEY || '';
 }
+
