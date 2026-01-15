@@ -5,5 +5,7 @@ export function getAnthropicModel(apiKey: string) {
     apiKey,
   });
 
-  return anthropic('claude-3-5-sonnet-20241022');
+  // Using Claude Sonnet 4.5 - latest recommended model (Sept 2025)
+  // Fallback: claude-3-5-sonnet-20241022 if newer model not available
+  return anthropic('claude-sonnet-4-5-20250929');
 }
