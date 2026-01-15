@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button } from '~/components/ui/Button';
 
 interface Message {
   id: string;
@@ -132,13 +131,13 @@ export function Chat() {
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isLoading}
             />
-            <Button
+            <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              loading={isLoading}
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Send
-            </Button>
+              {isLoading ? 'Sending...' : 'Send'}
+            </button>
           </div>
         </form>
       </div>
