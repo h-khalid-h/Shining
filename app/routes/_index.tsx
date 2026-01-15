@@ -1,6 +1,6 @@
 import type { Route } from './+types/_index';
 import { useState, useEffect } from 'react';
-import { Header } from '~/components/header/Header';
+import { HeaderClient } from '~/components/header/Header.client';
 import { Chat } from '~/components/chat/Chat.client';
 import { IntelligenceLayerClient } from '~/components/intelligence/IntelligenceLayer.client';
 
@@ -18,7 +18,14 @@ export default function Index() {
 
   return (
     <div className="flex flex-col h-full w-full">
-      <Header />
+      {isClient ? <HeaderClient /> : (
+        <header className="flex items-center justify-between bg-white p-5 border-b border-gray-200">
+          <div className="flex items-center gap-4">
+            <a href="/" className="text-2xl font-semibold text-blue-600">Shining</a>
+          </div>
+          <span className="text-sm text-gray-600">Intelligent Outcome Platform</span>
+        </header>
+      )}
       <div className="flex-1 relative">
         {isClient ? <Chat /> : (
           <div className="flex items-center justify-center h-full">
@@ -30,3 +37,4 @@ export default function Index() {
     </div>
   );
 }
+
