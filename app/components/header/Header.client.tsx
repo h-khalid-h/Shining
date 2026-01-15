@@ -6,6 +6,7 @@ import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
 import { ChatDescription } from './ChatDescription';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
+import { ProjectSwitcher } from '~/components/projects/ProjectSwitcher';
 
 export function HeaderClient() {
     const [isClient, setIsClient] = useState(false);
@@ -25,6 +26,7 @@ export function HeaderClient() {
             )}
         >
             <div className="flex items-center gap-4">
+                {isClient && <ProjectSwitcher />}
                 <a href="/" className="text-2xl font-semibold text-blue-600">
                     Shining
                 </a>

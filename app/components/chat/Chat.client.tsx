@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Message {
   id: string;
@@ -6,10 +6,19 @@ interface Message {
   content: string;
 }
 
-export function Chat() {
+interface ChatProps {
+  onMessageCountChange?: (count: number) => void;
+}
+
+export function Chat({ onMessageCountChange }: ChatProps = {}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update message count when messages change
+  useEffect(() => {
+    onMessageCountChange?.(messages.length);
+  }, [messages.length, onMessageCountChange]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

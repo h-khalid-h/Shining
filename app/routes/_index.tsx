@@ -27,7 +27,7 @@ export default function Index() {
         </header>
       )}
       <div className="flex-1 relative">
-        {isClient ? <Chat /> : (
+        {isClient ? <Chat onMessageCountChange={setMessageCount} /> : (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">Loading...</div>
           </div>
