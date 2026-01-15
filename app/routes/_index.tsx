@@ -1,11 +1,12 @@
-import { json, type MetaFunction } from '@remix-run/cloudflare';
+import { json } from 'react-router';
+import type { Route } from './+types/_index';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
 
-export const meta: MetaFunction = () => {
-  return [{ title: 'Bolt' }, { name: 'description', content: 'Talk with Bolt, an AI assistant from StackBlitz' }];
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Shining' }, { name: 'description', content: 'Intelligent outcome platform powered by AI' }];
 };
 
 export const loader = () => json({});
