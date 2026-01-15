@@ -1,9 +1,9 @@
 /**
  * Projects Store
- * Multi-project support with nanostores
+ * Multi-project support with nanostores and localStorage persistence
  */
 
-import { map } from 'nanostores';
+import { persistentMap } from '@nanostores/persistent';
 
 export interface Project {
     id: string;
@@ -21,10 +21,13 @@ export interface ProjectsState {
     loading: boolean;
 }
 
-export const projectsStore = map<ProjectsState>({
+export const projectsStore = persistentMap<ProjectsState>('shining:projects:', {
     projects: [],
     activeProjectId: null,
     loading: false,
+}, {
+    encode: JSON.stringify,
+    decode: JSON.parse,
 });
 
 /**

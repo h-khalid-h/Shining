@@ -1,9 +1,3 @@
-/**
- * IntelligenceLayer Component
- * Wraps chat with intelligence features (Understanding, Vectors, Drift, Graph)
- * Non-invasive overlay that doesn't modify chat code
- */
-
 import { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { graphStore } from '~/lib/stores/graph';
@@ -13,6 +7,7 @@ import { Understanding } from '~/components/intelligence/Understanding';
 import { VectorOptions } from '~/components/intelligence/VectorOptions';
 import { DriftNudge } from '~/components/intelligence/DriftNudge';
 import { GraphVisualization } from '~/components/intelligence/GraphVisualization';
+import { LoadingSpinner } from '~/components/ui/LoadingSpinner';
 import { detectDrift, shouldShowDriftAlert } from '~/lib/intelligence/drift-detector';
 
 export interface IntelligenceLayerProps {
@@ -43,16 +38,28 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
         <>
             {/* Understanding Card - shows after 3+ messages */}
             {understanding.shouldShow && (
-                <Understanding
-                    north={understanding.north}
-                    bounds={understanding.bounds}
-                    onConfirm={understanding.onConfirm}
-                    onDismiss={understanding.onDismiss}
-                />
+                understanding.loading ? (
+                    <div className="fixed bottom-20 right-6 bg-white p-4 rounded-lg shadow-lg">
+                        <LoadingSpinner size="sm" />
+                        <span className="ml-2 text-sm text-gray-600">Analyzing conversation...</span>
+                    </div>
+                ) : (
+                    <Understanding
+                        north={understanding.north}
+                        bounds={understanding.bounds}
+                        onConfirm={understanding.onConfirm}
+                        onDismiss={understanding.onDismiss}
+                    />
+                )
             )}
 
             {/* Vector Options - shows after North confirmed */}
-            {vectors.vectors.length > 0 && !vectors.selectedVector && (
+            {vectors.loading ? (
+                <div className="fixed bottom-20 right-6 bg-white p-4 rounded-lg shadow-lg">
+                    <LoadingSpinner size="sm" />
+                    <span className="ml-2 text-sm text-gray-600">Generating strategic options...</span>
+                </div>
+            ) : vectors.vectors.length > 0 && !vectors.selectedVector && (
                 <VectorOptions
                     vectors={vectors.vectors}
                     onSelect={vectors.selectVector}
