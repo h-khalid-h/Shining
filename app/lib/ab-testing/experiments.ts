@@ -19,8 +19,8 @@ export const experiments: Record<string, Experiment> = {
         name: 'Understanding Card Feature',
         enabled: true,
         variants: {
-            control: 50,
-            treatment: 50,
+            control: 0,
+            treatment: 100,
         },
     },
 };

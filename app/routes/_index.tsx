@@ -1,5 +1,6 @@
 import type { Route } from './+types/_index';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/react-router';
 import { HeaderClient } from '~/components/header/Header.client';
 import { Chat } from '~/components/chat/Chat.client';
 import { IntelligenceLayerClient } from '~/components/intelligence/IntelligenceLayer.client';
@@ -9,6 +10,7 @@ export const meta: Route.MetaFunction = () => {
 };
 
 export default function Index() {
+  const { userId, isSignedIn } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
 
@@ -32,7 +34,7 @@ export default function Index() {
             <div className="text-gray-500">Loading...</div>
           </div>
         )}
-        {isClient && <IntelligenceLayerClient userId={null} messageCount={messageCount} />}
+        {isClient && <IntelligenceLayerClient userId={userId ?? null} messageCount={messageCount} />}
       </div>
     </div>
   );
