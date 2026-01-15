@@ -1,28 +1,59 @@
-'use client';
-
-import { useChat } from 'ai/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '~/components/ui/Button';
 
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export function Chat() {
-  const [isClient, setIsClient] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Only render on client to avoid SSR issues
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-  });
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+    };
 
-  if (!isClient) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-500">Loading chat...</div>
-      </div>
-    );
-  }
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [...messages, userMessage] }),
+      });
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.message || 'I received your message!',
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -36,18 +67,30 @@ export function Chat() {
                 Ask me anything about your goals, projects, or strategic planning.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                <button
+                  onClick={() => setInput("Help me define my project goals")}
+                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
+                >
                   <p className="text-sm font-medium">💡 "Help me define my project goals"</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                </button>
+                <button
+                  onClick={() => setInput("What are my strategic options?")}
+                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
+                >
                   <p className="text-sm font-medium">🎯 "What are my strategic options?"</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                </button>
+                <button
+                  onClick={() => setInput("Show me my decision map")}
+                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
+                >
                   <p className="text-sm font-medium">📊 "Show me my decision map"</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                </button>
+                <button
+                  onClick={() => setInput("How do I get started?")}
+                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
+                >
                   <p className="text-sm font-medium">🚀 "How do I get started?"</p>
-                </div>
+                </button>
               </div>
             </div>
           </div>
@@ -84,7 +127,7 @@ export function Chat() {
             <input
               type="text"
               value={input}
-              onChange={handleInputChange}
+              onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isLoading}
