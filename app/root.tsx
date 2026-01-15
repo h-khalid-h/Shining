@@ -1,15 +1,14 @@
 import { useStore } from '@nanostores/react';
-import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import type { Route } from './+types/root';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
-import { createHead } from 'remix-island';
 import { useEffect } from 'react';
 
-// Clerk integration - uncomment when API keys are set up
-// import { ClerkApp } from '@clerk/remix';
-// import { rootAuthLoader } from '@clerk/remix/ssr.server';
+// Clerk integration
+import { ClerkProvider, SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/react-router';
+import { clerkMiddleware, rootAuthLoader } from '@clerk/react-router/server';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -17,7 +16,7 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
 
-export const links: LinksFunction = () => [
+export const links = () => [
   {
     rel: 'icon',
     href: '/favicon.svg',
@@ -42,8 +41,11 @@ export const links: LinksFunction = () => [
   },
 ];
 
-// Clerk loader - uncomment when API keys are set up
-// export const loader = (args: any) => rootAuthLoader(args);
+// Add Clerk middleware
+export const middleware: Route.MiddlewareFunction[] = [clerkMiddleware()];
+
+// Add Clerk loader
+export const loader = (args: Route.LoaderArgs) => rootAuthLoader(args);
 
 const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
@@ -59,16 +61,6 @@ const inlineThemeCode = stripIndents`
   }
 `;
 
-export const Head = createHead(() => (
-  <>
-    <meta charSet="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <Meta />
-    <Links />
-    <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
-  </>
-));
-
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
 
@@ -77,20 +69,37 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   return (
-    <>
-      {children}
-      <ScrollRestoration />
-      <Scripts />
-    </>
+    <html lang="en" data-theme={theme}>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
+        <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
+      </head>
+      <body>
+        {children}
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
   );
 }
 
-function App() {
-  return <Outlet />;
+export default function App({ loaderData }: Route.ComponentProps) {
+  return (
+    <ClerkProvider loaderData={loaderData}>
+      <Layout>
+        <header className="flex items-center justify-end py-2 px-4">
+          <SignedOut>
+            <SignInButton />
+          </SignedOut>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
+        </header>
+        <Outlet />
+      </Layout>
+    </ClerkProvider>
+  );
 }
-
-// Clerk wrapper - uncomment when API keys are set up
-// export default ClerkApp(App);
-
-// For now, export without Clerk
-export default App;
