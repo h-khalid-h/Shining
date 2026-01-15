@@ -44,6 +44,12 @@ export function useChatHistory() {
   const [urlId, setUrlId] = useState<string | undefined>();
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      setReady(true);
+      return;
+    }
+
     const loadHistory = async () => {
       const db = await getDb();
 
@@ -71,6 +77,7 @@ export function useChatHistory() {
           setReady(true);
         } catch (error: any) {
           toast.error(error.message);
+          setReady(true);
         }
       } else {
         try {
@@ -81,6 +88,7 @@ export function useChatHistory() {
           navigate(`/chat/${newUrlId}`, { replace: true });
         } catch (error) {
           toast.error('Failed to create new chat');
+          setReady(true);
         }
       }
     };
