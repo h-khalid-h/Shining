@@ -12,8 +12,13 @@ export default defineConfig((config) => {
     },
     plugins: [
       nodePolyfills({
-        include: ['path', 'buffer'],
+        include: ['path', 'buffer', 'process'],
+        globals: {
+          process: true,
+          Buffer: true,
+        },
       }),
+
       reactRouter(),
       UnoCSS(),
       tsconfigPaths(),

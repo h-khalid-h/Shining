@@ -1,174 +1,112 @@
-# Quick Start - Complete Week 2 Now
+# Shining Quick Start Guide
 
-## What's Ready ✅
-
-All code is integrated and working. You just need to activate it.
+**Status**: 🚀 Platform Ready (API Key Required)
 
 ---
 
-## Option 1: Test Without Auth (5 minutes)
+## Prerequisites
 
-You can test the extraction immediately without setting up accounts:
+- Node.js 18+
+- Valid Anthropic API key
 
-### 1. Create Mock Environment
+---
+
+## 5-Minute Setup
+
+### 1. Install Dependencies
 ```bash
 cd /Users/hkhalid/Codebases/Shining
-cp .env.example .env
+npm install
 ```
 
-### 2. Add Mock Values to .env
-```
-# Use these temporary values for testing
-ANTHROPIC_API_KEY=your_key_here
-NEO4J_URI=neo4j+s://test.databases.neo4j.io
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=test
+### 2. Configure Environment
+Edit `.env` with your API keys:
+
+```bash
+# Required - Get from https://console.anthropic.com
+ANTHROPIC_API_KEY=sk-ant-api03-YOUR_KEY_HERE
+
+# Already configured
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEO4J_URI=neo4j+s://...
+NEO4J_PASSWORD=...
 ```
 
-### 3. Comment Out Auth Check
-The code already works without auth - it just won't extract if no user ID.
-
-### 4. Test
+### 3. Start Development Server
 ```bash
 npm run dev
-# Send messages - extraction will log but skip graph storage
+# Visit http://localhost:5174
 ```
 
 ---
 
-## Option 2: Full Setup (35 minutes)
+## Features
 
-### Step 1: Get API Keys (15 min)
+### Working Now ✅
+- **Chat** - AI-powered conversation
+- **Authentication** - Click "Sign In" (Clerk)
+- **Multi-Project** - Use ProjectSwitcher dropdown
+- **Error Handling** - User-friendly messages
 
-**Anthropic (Required for extraction):**
-```
-1. Visit https://console.anthropic.com
-2. Sign up
-3. Create API key
-4. Copy key (sk-ant-...)
-```
-
-**Neo4j (Required for storage):**
-```
-1. Visit https://neo4j.com/cloud/aura/
-2. Sign up for free
-3. Create instance
-4. Copy URI, username, password
-```
-
-**Clerk (Optional - for user auth):**
-```
-1. Visit https://clerk.com
-2. Sign up
-3. Create application
-4. Copy publishable + secret keys
-```
-
-### Step 2: Configure (5 min)
-
-**Edit `.env`:**
-```
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-NEO4J_URI=neo4j+s://xxxxx.databases.neo4j.io
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=xxxxx
-
-# Optional - for auth
-CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
-CLERK_SECRET_KEY=sk_test_xxxxx
-```
-
-### Step 3: Enable Clerk (5 min)
-
-**In `app/root.tsx`, uncomment these lines:**
-```typescript
-// Line 10-11: Uncomment imports
-import { ClerkApp } from '@clerk/remix';
-import { rootAuthLoader } from '@clerk/remix/ssr.server';
-
-// Line 42: Uncomment loader
-export const loader = (args: any) => rootAuthLoader(args);
-
-// Line 87: Uncomment wrapper
-export default ClerkApp(App);
-
-// Line 90: Comment out this line
-// export default App;
-```
-
-### Step 4: Test (10 min)
-
-```bash
-npm run dev
-# Visit http://localhost:5173
-# Send a message
-# Check console for extraction logs
-```
-
-**Expected logs:**
-```
-[Intelligence] Extraction completed {
-  userId: "user_xxx",
-  confidence: 75,
-  graphUpdated: true
-}
-```
+### After API Key ✅
+- **AI Responses** - Claude 3.5 Sonnet
+- **Understanding Card** - Shows after 3+ messages
+- **Vector Suggestions** - Strategic path options
+- **Graph Storage** - Neo4j knowledge base
 
 ---
 
-## Verification
+## Testing Flow
 
-### Without Auth
-- ✅ App runs
-- ✅ Chat works
-- ⚠️ Extraction skipped (no user ID)
-
-### With Anthropic + Neo4j
-- ✅ App runs
-- ✅ Chat works
-- ✅ Extraction runs
-- ✅ Graph stores data
-- ⚠️ No user authentication
-
-### With Full Setup
-- ✅ App runs
-- ✅ Chat works
-- ✅ User can sign in
-- ✅ Extraction runs
-- ✅ Graph stores data
-- ✅ Everything working!
+1. **Sign In** → Click "Sign In" button
+2. **Send Messages** → Type in chat
+3. **Wait for Understanding** → After 3+ messages
+4. **Confirm Goals** → Card appears bottom-right
+5. **Get Suggestions** → Vector options appear
 
 ---
 
 ## Troubleshooting
 
-### "Module not found: @clerk/remix"
-Already installed. Restart dev server.
+### "Model configuration error"
+→ Update `ANTHROPIC_API_KEY` in `.env`
+→ Restart: `npm run dev`
 
-### "Neo4j connection failed"
-Check URI, username, password in .env
+### "Sign In not working"
+→ Check `VITE_CLERK_PUBLISHABLE_KEY` in `.env`
 
-### "Anthropic API error"
-Verify API key is correct and has credits
-
-### "No extraction logs"
-Check that environment variables are set correctly
-
----
-
-## Next Steps After Testing
-
-Once Week 2 is working:
-1. Analyze extraction accuracy
-2. Refine prompts if needed
-3. Start Week 3 (graph store)
-4. Add signal calculation
-5. Prepare for UI features
+### "Understanding Card not appearing"
+→ Send at least 3 messages
+→ Ensure you're signed in
 
 ---
 
-**Choose your path:**
-- Quick test: Option 1 (5 min)
-- Full setup: Option 2 (35 min)
+## Architecture
 
-Both work - Option 2 gives you the complete system!
+```
+app/
+├── components/     # UI Components
+│   ├── chat/      # Chat interface
+│   ├── header/    # Header with ProjectSwitcher
+│   └── intelligence/ # Understanding, Vectors
+├── lib/
+│   ├── .server/llm/   # Claude integration
+│   ├── intelligence/  # AI features
+│   └── stores/        # State management
+└── routes/
+    ├── _index.tsx     # Main page
+    └── api.chat.ts    # Chat API
+```
+
+---
+
+## Next Steps
+
+1. ✅ Update API key in `.env`
+2. ✅ Test chat with AI responses
+3. ✅ Complete 3+ message conversation
+4. ✅ Verify Understanding Card appears
+5. 🔜 Enable Workbench (Code button)
+
+**Questions?** Check the README.md for detailed documentation.
