@@ -19,12 +19,15 @@ type Pages = {
       "id": string;
     };
   };
+  "/test": {
+    params: {};
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/chat/:id";
+    page: "/" | "/chat/:id" | "/test";
   };
   "routes/_index.tsx": {
     id: "routes/_index";
@@ -34,10 +37,15 @@ type RouteFiles = {
     id: "routes/chat.$id";
     page: "/chat/:id";
   };
+  "routes/test.tsx": {
+    id: "routes/test";
+    page: "/test";
+  };
 };
 
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/_index": typeof import("./app/routes/_index.tsx");
   "routes/chat.$id": typeof import("./app/routes/chat.$id.tsx");
+  "routes/test": typeof import("./app/routes/test.tsx");
 };
