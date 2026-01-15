@@ -22,12 +22,34 @@ type Pages = {
   "/test": {
     params: {};
   };
+  "/api/chat": {
+    params: {};
+  };
+  "/api/vectors/generate": {
+    params: {};
+  };
+  "/api/enhancer": {
+    params: {};
+  };
+  "/api/graph/active": {
+    params: {};
+  };
+  "/api/graph/:northId": {
+    params: {
+      "northId": string;
+    };
+  };
+  "/api/graph/:northId/signal": {
+    params: {
+      "northId": string;
+    };
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/chat/:id" | "/test";
+    page: "/" | "/chat/:id" | "/test" | "/api/chat" | "/api/vectors/generate" | "/api/enhancer" | "/api/graph/active" | "/api/graph/:northId" | "/api/graph/:northId/signal";
   };
   "routes/_index.tsx": {
     id: "routes/_index";
@@ -41,6 +63,30 @@ type RouteFiles = {
     id: "routes/test";
     page: "/test";
   };
+  "routes/api.chat.ts": {
+    id: "routes/api.chat";
+    page: "/api/chat";
+  };
+  "routes/api.vectors.generate.ts": {
+    id: "routes/api.vectors.generate";
+    page: "/api/vectors/generate";
+  };
+  "routes/api.enhancer.ts": {
+    id: "routes/api.enhancer";
+    page: "/api/enhancer";
+  };
+  "routes/api.graph.active.ts": {
+    id: "routes/api.graph.active";
+    page: "/api/graph/active";
+  };
+  "routes/api.graph.$northId.ts": {
+    id: "routes/api.graph.$northId";
+    page: "/api/graph/:northId";
+  };
+  "routes/api.graph.$northId.signal.ts": {
+    id: "routes/api.graph.$northId.signal";
+    page: "/api/graph/:northId/signal";
+  };
 };
 
 type RouteModules = {
@@ -48,4 +94,10 @@ type RouteModules = {
   "routes/_index": typeof import("./app/routes/_index.tsx");
   "routes/chat.$id": typeof import("./app/routes/chat.$id.tsx");
   "routes/test": typeof import("./app/routes/test.tsx");
+  "routes/api.chat": typeof import("./app/routes/api.chat.ts");
+  "routes/api.vectors.generate": typeof import("./app/routes/api.vectors.generate.ts");
+  "routes/api.enhancer": typeof import("./app/routes/api.enhancer.ts");
+  "routes/api.graph.active": typeof import("./app/routes/api.graph.active.ts");
+  "routes/api.graph.$northId": typeof import("./app/routes/api.graph.$northId.ts");
+  "routes/api.graph.$northId.signal": typeof import("./app/routes/api.graph.$northId.signal.ts");
 };
