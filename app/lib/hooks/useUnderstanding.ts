@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { graphStore } from '~/lib/stores/graph';
+import { getVariant } from '~/lib/ab-testing/experiments';
+import {
+    trackUnderstandingShown,
+    trackUnderstandingConfirmed,
+    trackUnderstandingDismissed,
+} from '~/lib/analytics/events';
 
 /**
  * Hook to manage Understanding Card visibility and state
+ * Includes A/B testing and analytics tracking
  */
 
 export interface UnderstandingState {
@@ -13,7 +20,7 @@ export interface UnderstandingState {
     shownAt: number | null;
 }
 
-export function useUnderstanding(messageCount: number) {
+export function useUnderstanding(messageCount: number, userId: string | null) {
     const graph = useStore(graphStore);
     const [state, setState] = useState<UnderstandingState>({
         shouldShow: false,
@@ -22,7 +29,16 @@ export function useUnderstanding(messageCount: number) {
         shownAt: null,
     });
 
+    // Check A/B test variant
+    const variant = userId ? getVariant('understandingCard', userId) : 'control';
+    const isInTreatment = variant === 'treatment';
+
     useEffect(() => {
+        // Only show if in treatment group
+        if (!isInTreatment || !userId) {
+            return;
+        }
+
         // Conditions to show Understanding Card:
         // 1. North is identified with confidence > 70
         // 2. At least 3 messages
@@ -39,8 +55,19 @@ export function useUnderstanding(messageCount: number) {
                 shouldShow: true,
                 shownAt: Date.now(),
             }));
+
+            // Track that card was shown
+            if (graph.north) {
+                trackUnderstandingShown(
+                    userId,
+                    graph.north.id || 'unknown',
+                    graph.north.confidence,
+                    messageCount,
+                    variant,
+                );
+            }
         }
-    }, [graph.north, messageCount, state.dismissed, state.confirmed, state.shouldShow]);
+    }, [graph.north, messageCount, state.dismissed, state.confirmed, state.shouldShow, isInTreatment, userId, variant]);
 
     // Auto-dismiss after 30 seconds
     useEffect(() => {
@@ -61,12 +88,14 @@ export function useUnderstanding(messageCount: number) {
         }));
 
         // Track confirmation
-        if (typeof window !== 'undefined' && graph.north) {
-            console.log('Understanding confirmed', {
-                northId: graph.north.id,
-                confidence: graph.north.confidence,
-                timeToConfirm: state.shownAt ? Date.now() - state.shownAt : 0,
-            });
+        if (userId && graph.north) {
+            const timeToConfirm = state.shownAt ? Date.now() - state.shownAt : 0;
+            trackUnderstandingConfirmed(
+                userId,
+                graph.north.id || 'unknown',
+                timeToConfirm,
+                variant,
+            );
         }
     };
 
@@ -78,12 +107,15 @@ export function useUnderstanding(messageCount: number) {
         }));
 
         // Track dismissal
-        if (typeof window !== 'undefined' && graph.north) {
-            console.log('Understanding dismissed', {
-                northId: graph.north.id,
+        if (userId && graph.north) {
+            const timeShown = state.shownAt ? Date.now() - state.shownAt : 0;
+            trackUnderstandingDismissed(
+                userId,
+                graph.north.id || 'unknown',
                 reason,
-                timeShown: state.shownAt ? Date.now() - state.shownAt : 0,
-            });
+                timeShown,
+                variant,
+            );
         }
     };
 
@@ -93,5 +125,6 @@ export function useUnderstanding(messageCount: number) {
         bounds: graph.bounds,
         onConfirm: handleConfirm,
         onDismiss: () => handleDismiss('user_action'),
+        variant, // Expose variant for debugging
     };
 }
