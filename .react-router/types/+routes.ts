@@ -14,15 +14,30 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/chat/:id": {
+    params: {
+      "id": string;
+    };
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
+    page: "/" | "/chat/:id";
+  };
+  "routes/_index.tsx": {
+    id: "routes/_index";
     page: "/";
+  };
+  "routes/chat.$id.tsx": {
+    id: "routes/chat.$id";
+    page: "/chat/:id";
   };
 };
 
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
+  "routes/_index": typeof import("./app/routes/_index.tsx");
+  "routes/chat.$id": typeof import("./app/routes/chat.$id.tsx");
 };

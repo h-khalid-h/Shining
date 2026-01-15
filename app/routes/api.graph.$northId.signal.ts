@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { Route } from './+types/api.graph.$northId.signal';
 import { requireAuth } from '~/lib/auth.server';
 import { GraphService } from '~/lib/intelligence/graph.server';
 import { createScopedLogger } from '~/utils/logger';

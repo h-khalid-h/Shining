@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { Route } from './+types/api.graph.active';
 import { requireAuth } from '~/lib/auth.server';
 import { createScopedLogger } from '~/utils/logger';
 

@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { Route } from './+types/api.enhancer';
 import { StreamingTextResponse, parseStreamPart } from 'ai';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { stripIndents } from '~/utils/stripIndent';
@@ -9,7 +9,7 @@ const logger = createScopedLogger('Enhancer');
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export async function action(args: ActionFunctionArgs) {
+export async function action(args: Route.ActionArgs) {
   return enhancerAction(args);
 }
 

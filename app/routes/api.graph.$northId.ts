@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { Route } from './+types/api.graph.$northId';
 import { getOptionalAuth } from '~/lib/auth.server';
 import { GraphService } from '~/lib/intelligence/graph.server';
 import { graphCache } from '~/lib/intelligence/graph-cache';

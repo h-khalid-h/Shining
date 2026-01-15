@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { Route } from './+types/api.chat';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
@@ -10,11 +10,11 @@ import { shouldExtract, logExtraction } from '~/lib/intelligence/extraction-logg
 
 const logger = createScopedLogger('ChatAPI');
 
-export async function action(args: ActionFunctionArgs) {
+export async function action(args: Route.ActionArgs) {
   return chatAction(args);
 }
 
-async function chatAction({ context, request }: ActionFunctionArgs) {
+async function chatAction({ context, request }: Route.ActionArgs) {
   // Get user ID (optional - works without auth for now)
   const userId = await getOptionalAuth({ context, request });
 
