@@ -1,0 +1,187 @@
+.container {
+    position: fixed;
+    bottom: 100px;
+    left: 20px;
+    max-width: 400px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    z-index: 1000;
+    border-left: 4px solid;
+}
+
+.container.medium {
+    border-left-color: #f59e0b;
+}
+
+.container.high {
+    border-left-color: #ef4444;
+}
+
+.header {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.content h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 8px 0;
+}
+
+.recommendation {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.driftIndicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.driftLabel {
+    font-size: 13px;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.driftBar {
+    flex: 1;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.driftFill {
+    height: 100%;
+    border-radius: 4px;
+}
+
+.driftValue {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    min-width: 45px;
+    text-align: right;
+}
+
+.actions {
+    margin-bottom: 16px;
+}
+
+.actions h5 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 8px 0;
+}
+
+.actions ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.actions li {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+
+.buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.primaryButton,
+.secondaryButton {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.primaryButton {
+    background: #3b82f6;
+    color: white;
+}
+
+.primaryButton:hover {
+    background: #2563eb;
+}
+
+.secondaryButton {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.secondaryButton:hover {
+    background: #e5e7eb;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .container {
+        background: rgba(31, 41, 55, 0.95);
+    }
+
+    .content h4 {
+        color: #f9fafb;
+    }
+
+    .recommendation {
+        color: #d1d5db;
+    }
+
+    .driftIndicator {
+        background: #1f2937;
+    }
+
+    .driftLabel {
+        color: #d1d5db;
+    }
+
+    .driftValue {
+        color: #f9fafb;
+    }
+
+    .actions h5 {
+        color: #f9fafb;
+    }
+
+    .actions li {
+        color: #d1d5db;
+    }
+
+    .secondaryButton {
+        background: #374151;
+        color: #f9fafb;
+    }
+
+    .secondaryButton:hover {
+        background: #4b5563;
+    }
+}

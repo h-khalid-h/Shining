@@ -1,0 +1,232 @@
+.container {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    max-width: 800px;
+    width: calc(100% - 40px);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    z-index: 1000;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.dismissButton {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.dismissButton:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.vectorList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.vectorCard {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.vectorCard:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.vectorHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.vectorHeader h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.confidence {
+    font-size: 12px;
+    color: #10b981;
+    background: #d1fae5;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.approach {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.tradeoffs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.tradeoffBar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tradeoffLabel {
+    font-size: 12px;
+    color: #6b7280;
+    width: 60px;
+}
+
+.tradeoffTrack {
+    flex: 1;
+    height: 6px;
+    background: #f3f4f6;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.tradeoffFill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.tradeoffValue {
+    font-size: 12px;
+    color: #6b7280;
+    width: 40px;
+    text-align: right;
+}
+
+.steps {
+    margin-bottom: 16px;
+}
+
+.steps h5 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 8px 0;
+}
+
+.steps ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.steps li {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.duration {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.selectButton {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.selectButton:hover {
+    background: #2563eb;
+    transform: translateX(2px);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .container {
+        background: rgba(31, 41, 55, 0.95);
+    }
+
+    .header h3 {
+        color: #f9fafb;
+    }
+
+    .vectorCard {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .vectorCard:hover {
+        border-color: #3b82f6;
+    }
+
+    .vectorHeader h4 {
+        color: #f9fafb;
+    }
+
+    .approach {
+        color: #d1d5db;
+    }
+
+    .steps h5 {
+        color: #f9fafb;
+    }
+
+    .steps li {
+        color: #d1d5db;
+    }
+
+    .duration {
+        color: #d1d5db;
+    }
+}
