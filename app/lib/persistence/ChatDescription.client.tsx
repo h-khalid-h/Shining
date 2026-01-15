@@ -1,3 +1,7 @@
+import { useStore } from '@nanostores/react';
+import { description } from './useChatHistory';
+
 export function ChatDescription() {
-  return null; // Simplified - will restore functionality later
+  const desc = useStore(description);
+  return desc || null;
 }

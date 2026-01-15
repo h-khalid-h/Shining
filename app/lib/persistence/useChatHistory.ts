@@ -37,7 +37,6 @@ export const description = atom<string | undefined>(undefined);
 
 export function useChatHistory() {
   const navigate = useNavigate();
-  // Get ID from URL pathname instead of loader data
   const mixedId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : undefined;
 
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
@@ -45,19 +44,21 @@ export function useChatHistory() {
   const [urlId, setUrlId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!db) {
-      setReady(true);
+    const loadHistory = async () => {
+      const db = await getDb();
 
-      if (persistenceEnabled) {
-        toast.error(`Chat persistence is unavailable`);
+      if (!db) {
+        setReady(true);
+        if (persistenceEnabled) {
+          toast.error(`Chat persistence is unavailable`);
+        }
+        return;
       }
 
-      return;
-    }
+      if (mixedId) {
+        try {
+          const storedMessages = await getMessages(db, mixedId);
 
-    if (mixedId) {
-      getMessages(db, mixedId)
-        .then((storedMessages) => {
           if (storedMessages && storedMessages.messages.length > 0) {
             setInitialMessages(storedMessages.messages);
             setUrlId(storedMessages.urlId);
@@ -68,57 +69,46 @@ export function useChatHistory() {
           }
 
           setReady(true);
-        })
-        .catch((error) => {
+        } catch (error: any) {
           toast.error(error.message);
-        });
-    }
+        }
+      } else {
+        try {
+          const nextId = await getNextId(db);
+          const newUrlId = await getUrlId(db, nextId);
+
+          chatId.set(nextId);
+          navigate(`/chat/${newUrlId}`, { replace: true });
+        } catch (error) {
+          toast.error('Failed to create new chat');
+        }
+      }
+    };
+
+    loadHistory();
   }, []);
 
   return {
     ready: !mixedId || ready,
     initialMessages,
     storeMessageHistory: async (messages: Message[]) => {
-      if (!db || messages.length === 0) {
+      const db = await getDb();
+      if (!db || !urlId) {
         return;
       }
 
-      const { firstArtifact } = workbenchStore;
+      const currentChatId = chatId.get();
 
-      if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(db, firstArtifact.id);
-
-        navigateChat(urlId);
-        setUrlId(urlId);
+      if (!currentChatId) {
+        console.error('Chat ID not set');
+        return;
       }
 
-      if (!description.get() && firstArtifact?.title) {
-        description.set(firstArtifact?.title);
+      try {
+        await setMessages(db, currentChatId, messages, urlId, description.get());
+      } catch (error) {
+        console.error('Failed to store messages', error);
       }
-
-      if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(db);
-
-        chatId.set(nextId);
-
-        if (!urlId) {
-          navigateChat(nextId);
-        }
-      }
-
-      await setMessages(db, chatId.get() as string, messages, urlId, description.get());
     },
   };
-}
-
-function navigateChat(nextId: string) {
-  /**
-   * FIXME: Using the intended navigate function causes a rerender for <Chat /> that breaks the app.
-   *
-   * `navigate(`/chat/${nextId}`, { replace: true });`
-   */
-  const url = new URL(window.location.href);
-  url.pathname = `/chat/${nextId}`;
-
-  window.history.replaceState({}, '', url);
 }

@@ -1,6 +1,8 @@
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
+import { HeaderActionButtons } from './HeaderActionButtons.client';
+import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { Tooltip } from '~/components/ui/Tooltip';
 
 export function Header() {
@@ -25,8 +27,13 @@ export function Header() {
         </div>
       </Tooltip>
       <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary">
-        Shining - Intelligent Outcome Platform
+        <ChatDescription />
       </span>
+      {chat.started && (
+        <div className="mr-1">
+          <HeaderActionButtons />
+        </div>
+      )}
     </header>
   );
 }
