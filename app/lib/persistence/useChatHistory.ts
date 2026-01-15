@@ -16,7 +16,21 @@ export interface ChatHistoryItem {
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
 
-export const db = persistenceEnabled ? await openDatabase() : undefined;
+// Lazy database initialization to avoid top-level await
+let dbInstance: IDBDatabase | undefined;
+let dbPromise: Promise<IDBDatabase | undefined> | undefined;
+
+export async function getDb(): Promise<IDBDatabase | undefined> {
+  if (!persistenceEnabled) return undefined;
+  if (dbInstance) return dbInstance;
+  if (!dbPromise) {
+    dbPromise = openDatabase().then(db => {
+      dbInstance = db;
+      return db;
+    });
+  }
+  return dbPromise;
+}
 
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
