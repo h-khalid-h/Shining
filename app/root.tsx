@@ -86,20 +86,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App({ loaderData }: Route.ComponentProps) {
-  return (
-    <ClerkProvider loaderData={loaderData}>
-      <Layout>
-        <header className="flex items-center justify-end py-2 px-4">
-          <SignedOut>
-            <SignInButton />
-          </SignedOut>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
-        </header>
-        <Outlet />
-      </Layout>
-    </ClerkProvider>
-  );
+export default function App() {
+  return <Outlet />;
 }
