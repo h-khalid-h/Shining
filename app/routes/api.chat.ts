@@ -4,6 +4,9 @@ import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import { createScopedLogger } from '~/utils/logger';
+import { getOptionalAuth } from '~/lib/auth.server';
+import { IntegrationService } from '~/lib/intelligence/integration.server';
+import { shouldExtract, logExtraction } from '~/lib/intelligence/extraction-logger';
 
 const logger = createScopedLogger('ChatAPI');
 
@@ -12,7 +15,65 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
+  // Get user ID (optional - works without auth for now)
+  const userId = await getOptionalAuth({ context, request });
+
   const { messages } = await request.json<{ messages: Messages }>();
+
+  // Run background extraction if user is authenticated and should extract
+  const messageCount = messages.length;
+  const shouldRunExtraction = shouldExtract(messageCount);
+
+  if (
+    userId &&
+    shouldRunExtraction &&
+    context.cloudflare.env.ANTHROPIC_API_KEY &&
+    context.cloudflare.env.NEO4J_URI
+  ) {
+    const integration = new IntegrationService({
+      anthropicApiKey: context.cloudflare.env.ANTHROPIC_API_KEY,
+      neo4jUri: context.cloudflare.env.NEO4J_URI,
+      neo4jUsername: context.cloudflare.env.NEO4J_USERNAME || 'neo4j',
+      neo4jPassword: context.cloudflare.env.NEO4J_PASSWORD,
+    });
+
+    const startTime = Date.now();
+
+    // Process in background (don't await)
+    integration
+      .processMessages(
+        userId,
+        messages.map((m) => ({ role: m.role, content: m.content })),
+      )
+      .then((result) => {
+        const extractionTime = Date.now() - startTime;
+
+        // Log extraction for analysis
+        logExtraction(
+          userId,
+          messages,
+          result.extracted,
+          extractionTime,
+        );
+
+        logger.info('Background extraction complete', {
+          userId,
+          messageCount,
+          confidence: result.extracted.overallConfidence,
+          graphUpdated: result.graphUpdated,
+          northId: result.northId,
+          extractionTimeMs: extractionTime,
+        });
+      })
+      .catch((error) => {
+        logger.error('Background extraction failed', { userId, error: error.message });
+      })
+      .finally(() => {
+        integration.close();
+      });
+  } else if (userId && !shouldRunExtraction) {
+    logger.debug('Skipping extraction', { userId, messageCount, reason: 'not enough messages' });
+  }
 
   const stream = new SwitchableStream();
 

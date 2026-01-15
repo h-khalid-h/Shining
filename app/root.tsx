@@ -7,6 +7,10 @@ import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
 import { useEffect } from 'react';
 
+// Clerk integration - uncomment when API keys are set up
+// import { ClerkApp } from '@clerk/remix';
+// import { rootAuthLoader } from '@clerk/remix/ssr.server';
+
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
@@ -37,6 +41,9 @@ export const links: LinksFunction = () => [
     href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   },
 ];
+
+// Clerk loader - uncomment when API keys are set up
+// export const loader = (args: any) => rootAuthLoader(args);
 
 const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
@@ -78,6 +85,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+function App() {
   return <Outlet />;
 }
+
+// Clerk wrapper - uncomment when API keys are set up
+// export default ClerkApp(App);
+
+// For now, export without Clerk
+export default App;

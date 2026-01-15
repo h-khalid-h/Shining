@@ -1,0 +1,21 @@
+{
+    "name": "shining-poc",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "test:extraction": "tsx poc/intent-extraction.ts",
+        "test:graph": "tsx poc/graph-service.ts",
+        "test:integration": "tsx poc/integration-service.ts",
+        "test:all": "npm run test:extraction && npm run test:graph && npm run test:integration"
+    },
+    "dependencies": {
+        "@anthropic-ai/sdk": "^0.27.3",
+        "neo4j-driver": "^5.15.0",
+        "dotenv": "^16.3.1"
+    },
+    "devDependencies": {
+        "tsx": "^4.7.0",
+        "typescript": "^5.5.2",
+        "@types/node": "^20.10.0"
+    }
+}

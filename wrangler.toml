@@ -3,3 +3,14 @@ name = "bolt"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2024-07-01"
 pages_build_output_dir = "./build/client"
+
+[vars]
+# Public variables (safe to commit)
+CLERK_PUBLISHABLE_KEY = "pk_test_xxxxx"
+NEO4J_URI = "neo4j+s://xxxxx.databases.neo4j.io"
+NEO4J_USERNAME = "neo4j"
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# CLERK_SECRET_KEY
+# NEO4J_PASSWORD
+# ANTHROPIC_API_KEY
