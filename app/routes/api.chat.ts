@@ -112,7 +112,6 @@ async function chatAction({ context, request }: Route.ActionArgs) {
 
     const result = await streamText(messages, env, options);
 
-
     stream.switchSource(result.toAIStream());
 
     return new Response(stream.readable, {
@@ -122,11 +121,34 @@ async function chatAction({ context, request }: Route.ActionArgs) {
       },
     });
   } catch (error) {
-    logger.error('Chat API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
 
-    throw new Response(null, {
+    logger.error('Chat API error:', {
+      message: errorMessage,
+      stack: errorStack,
+      error,
+    });
+
+    // Log to console for debugging
+    console.error('Chat API Error Details:', {
+      message: errorMessage,
+      stack: errorStack,
+      env: {
+        hasAnthropicKey: !!env.ANTHROPIC_API_KEY,
+        anthropicKeyLength: env.ANTHROPIC_API_KEY?.length,
+      },
+    });
+
+    return new Response(JSON.stringify({
+      error: 'Internal Server Error',
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? errorStack : undefined,
+    }), {
       status: 500,
-      statusText: 'Internal Server Error',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
   }
 }

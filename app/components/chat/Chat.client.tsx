@@ -32,6 +32,45 @@ export function Chat() {
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       });
 
+      if (!response.ok) {
+        // Try to parse error details from response
+        let errorContent = 'Sorry, I encountered an error. Please try again.';
+
+        try {
+          const errorData = await response.json();
+          const errorMsg = errorData.message || '';
+
+          // Provide specific error messages based on error type
+          if (errorMsg.includes('ANTHROPIC_API_KEY') || errorMsg.includes('API key')) {
+            errorContent = '⚠️ API key not configured. Please add your ANTHROPIC_API_KEY to the .env file and restart the server.';
+          } else if (errorMsg.includes('rate limit')) {
+            errorContent = '⏱️ Rate limit exceeded. Please wait a moment and try again.';
+          } else if (errorMsg.includes('model:')) {
+            errorContent = '🔧 Model configuration error. Please check your API key and model settings.';
+          } else if (response.status === 401) {
+            errorContent = '🔑 Invalid API key. Please check your ANTHROPIC_API_KEY in the .env file.';
+          } else if (response.status === 500) {
+            errorContent = `❌ Server error: ${errorMsg}. Please check the console for details.`;
+          }
+        } catch {
+          // If we can't parse the error, use status-based messages
+          if (response.status === 401) {
+            errorContent = '🔑 Authentication failed. Please check your API key configuration.';
+          } else if (response.status === 500) {
+            errorContent = '❌ Server error. Please check the console for details.';
+          }
+        }
+
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: errorContent,
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+        setIsLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
       const assistantMessage: Message = {
@@ -43,10 +82,20 @@ export function Chat() {
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Chat error:', error);
+
+      // Network or parsing error
+      let errorContent = '🌐 Network error. Please check your connection and try again.';
+
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        errorContent = '🌐 Cannot connect to server. Please ensure the development server is running.';
+      } else if (error instanceof SyntaxError) {
+        errorContent = '⚠️ Received invalid response from server. Please check the console for details.';
+      }
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: errorContent,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -99,8 +148,8 @@ export function Chat() {
               <div
                 key={message.id}
                 className={`p-4 rounded-lg ${message.role === 'user'
-                    ? 'bg-blue-50 border border-blue-200 ml-auto max-w-[80%]'
-                    : 'bg-gray-50 border border-gray-200 mr-auto max-w-[80%]'
+                  ? 'bg-blue-50 border border-blue-200 ml-auto max-w-[80%]'
+                  : 'bg-gray-50 border border-gray-200 mr-auto max-w-[80%]'
                   }`}
               >
                 <div className="font-semibold mb-1 text-sm text-gray-600">
