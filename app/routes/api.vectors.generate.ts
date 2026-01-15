@@ -14,7 +14,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { north, bounds, context } = await request.json();
+    const { north, bounds, context: userContext } = await request.json();
 
     if (!north || !bounds) {
         return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -30,7 +30,7 @@ export async function action({ request, context }: Route.ActionArgs) {
             {
                 north,
                 bounds,
-                context,
+                context: userContext,
             },
             anthropicApiKey,
         );
