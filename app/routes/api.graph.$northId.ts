@@ -10,12 +10,12 @@ const logger = createScopedLogger('GraphAPI');
  * GET /api/graph/:northId
  * Returns graph state for a specific North
  */
-export async function loader({ context, params, request }: LoaderFunctionArgs) {
+export async function loader({ context, params, request }: Route.LoaderArgs) {
     const userId = await getOptionalAuth({ context, request });
     const { northId } = params;
 
     if (!northId) {
-        return json({ error: 'North ID required' }, { status: 400 });
+        return Response.json({ error: 'North ID required' }, { status: 400 });
     }
 
     // Check cache first
@@ -24,13 +24,13 @@ export async function loader({ context, params, request }: LoaderFunctionArgs) {
 
     if (cached) {
         logger.debug('Cache hit', { northId });
-        return json(cached);
+        return Response.json(cached);
     }
 
     // Check environment
     if (!context.cloudflare.env.NEO4J_URI) {
         logger.warn('Neo4j not configured');
-        return json(
+        return Response.json(
             {
                 north: null,
                 bounds: [],
@@ -52,7 +52,7 @@ export async function loader({ context, params, request }: LoaderFunctionArgs) {
         const state = await graph.getNorth(northId);
 
         if (!state) {
-            return json({ error: 'North not found' }, { status: 404 });
+            return Response.json({ error: 'North not found' }, { status: 404 });
         }
 
         const response = {
@@ -68,11 +68,11 @@ export async function loader({ context, params, request }: LoaderFunctionArgs) {
 
         logger.info('Graph state retrieved', { northId, userId });
 
-        return json(response);
+        return Response.json(response);
     } catch (error) {
         logger.error('Failed to fetch graph state', { northId, error });
 
-        return json(
+        return Response.json(
             {
                 north: null,
                 bounds: [],

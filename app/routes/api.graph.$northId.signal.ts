@@ -9,16 +9,16 @@ const logger = createScopedLogger('GraphAPI');
  * POST /api/graph/:northId/signal
  * Recalculates signal for a North
  */
-export async function action({ context, params, request }: ActionFunctionArgs) {
+export async function action({ context, params, request }: Route.ActionArgs) {
     const userId = await requireAuth({ context, request });
     const { northId } = params;
 
     if (!northId) {
-        return json({ error: 'North ID required' }, { status: 400 });
+        return Response.json({ error: 'North ID required' }, { status: 400 });
     }
 
     if (!context.cloudflare.env.NEO4J_URI) {
-        return json({ error: 'Graph database not configured' }, { status: 503 });
+        return Response.json({ error: 'Graph database not configured' }, { status: 503 });
     }
 
     const graph = new GraphService({
@@ -32,14 +32,14 @@ export async function action({ context, params, request }: ActionFunctionArgs) {
 
         logger.info('Signal recalculated', { northId, userId, signal });
 
-        return json({
+        return Response.json({
             signal,
             success: true,
         });
     } catch (error) {
         logger.error('Failed to recalculate signal', { northId, error });
 
-        return json(
+        return Response.json(
             {
                 error: 'Failed to recalculate signal',
                 success: false,

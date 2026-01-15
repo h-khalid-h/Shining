@@ -8,14 +8,14 @@ const logger = createScopedLogger('GraphAPI');
  * GET /api/graph/active
  * Returns the user's active North ID
  */
-export async function loader({ context, request }: LoaderFunctionArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
     const userId = await requireAuth({ context, request });
 
     // For now, return null - will be implemented when we track active North
     // In the future, this will query the graph for the user's most recent North
     logger.info('Active North requested', { userId });
 
-    return json({
+    return Response.json({
         northId: null,
         message: 'No active North found',
     });
