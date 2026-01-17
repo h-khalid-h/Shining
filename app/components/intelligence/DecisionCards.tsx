@@ -1,4 +1,7 @@
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { useStore } from '@nanostores/react';
+import { graphStore } from '~/lib/stores/graph';
 
 export interface DecisionOption {
     id: string;
@@ -19,14 +22,68 @@ export interface DecisionPoint {
 interface DecisionCardsProps {
     decision: DecisionPoint;
     onSelectOption: (optionId: string) => void;
+    userId?: string | null;
 }
 
 /**
  * Decision Cards component.
  * Shows clickable option cards when the user needs to make a decision.
  * Prevents auto-code generation until user chooses an option.
+ * Automatically stores decisions and selections in Neo4j.
  */
-export function DecisionCards({ decision, onSelectOption }: DecisionCardsProps) {
+export function DecisionCards({ decision, onSelectOption, userId }: DecisionCardsProps) {
+    const graph = useStore(graphStore);
+    const [decisionId, setDecisionId] = useState<string | null>(null);
+    const [storing, setStoring] = useState(false);
+
+    // Store decision when component mounts
+    useEffect(() => {
+        if (decision && !decisionId && !storing && graph.north && userId) {
+            setStoring(true);
+
+            fetch('/api/graph/decisions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    northId: graph.north.id,
+                    userId,
+                    decision: {
+                        question: decision.question,
+                        type: decision.type,
+                        recommended: decision.recommended,
+                    },
+                    options: decision.options,
+                }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setDecisionId(data.data.decisionId);
+                    }
+                })
+                .catch(err => console.error('Failed to store decision:', err))
+                .finally(() => setStoring(false));
+        }
+    }, [decision, decisionId, storing, graph.north, userId]);
+
+    const handleSelect = async (optionId: string) => {
+        // Record selection in Neo4j
+        if (decisionId && userId) {
+            try {
+                await fetch(`/api/graph/decisions/${decisionId}/select`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ optionId }),
+                });
+            } catch (err) {
+                console.error('Failed to record selection:', err);
+            }
+        }
+
+        // Continue with original handler
+        onSelectOption(optionId);
+    };
+
     const effortColors = {
         low: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
         medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300',
@@ -56,10 +113,10 @@ export function DecisionCards({ decision, onSelectOption }: DecisionCardsProps) 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        onClick={() => onSelectOption(option.id)}
+                        onClick={() => handleSelect(option.id)}
                         className={`relative p-4 border-2 rounded-lg text-left transition-all hover:border-bolt-elements-borderColorActive hover:shadow-lg ${decision.recommended === option.id
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1'
                             }`}
                     >
                         {/* Recommended badge */}
@@ -113,7 +170,7 @@ export function DecisionCards({ decision, onSelectOption }: DecisionCardsProps) 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: decision.options.length * 0.1 }}
-                    onClick={() => onSelectOption('idk')}
+                    onClick={() => handleSelect('idk')}
                     className="p-4 border-2 border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 rounded-lg text-left hover:border-bolt-elements-borderColorActive hover:shadow-lg transition-all"
                 >
                     <div className="flex items-center gap-2 mb-2">
@@ -132,7 +189,7 @@ export function DecisionCards({ decision, onSelectOption }: DecisionCardsProps) 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: (decision.options.length + 1) * 0.1 }}
-                    onClick={() => onSelectOption('more')}
+                    onClick={() => handleSelect('more')}
                     className="p-4 border-2 border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 rounded-lg text-left hover:border-bolt-elements-borderColorActive hover:shadow-lg transition-all"
                 >
                     <div className="flex items-center gap-2 mb-2">

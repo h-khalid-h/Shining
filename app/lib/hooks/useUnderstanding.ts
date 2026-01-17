@@ -80,7 +80,7 @@ export function useUnderstanding(messageCount: number, userId: string | null) {
         }
     }, [state.shouldShow, state.shownAt]);
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         setState((prev) => ({
             ...prev,
             shouldShow: false,
@@ -96,6 +96,30 @@ export function useUnderstanding(messageCount: number, userId: string | null) {
                 timeToConfirm,
                 variant,
             );
+
+            // Store bounds in Neo4j if any exist
+            if (graph.bounds && graph.bounds.length > 0) {
+                try {
+                    await fetch('/api/graph/bounds', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            northId: graph.north.id,
+                            userId,
+                            bounds: graph.bounds.map(b => ({
+                                metric: b.metric,
+                                value: b.value,
+                                threshold: b.threshold,
+                                unit: b.unit,
+                                confidence: b.confidence,
+                            })),
+                        }),
+                    });
+                } catch (error) {
+                    console.error('Failed to store bounds:', error);
+                    // Don't block confirmation on bounds storage failure
+                }
+            }
         }
     };
 
