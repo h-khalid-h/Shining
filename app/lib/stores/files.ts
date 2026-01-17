@@ -2,12 +2,34 @@ import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
 import { Buffer } from 'node:buffer';
-import * as nodePath from 'node:path';
 import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
+
+/**
+ * Browser-compatible path.relative() replacement
+ * Computes the relative path from 'from' to 'to'
+ */
+function relativePath(from: string, to: string): string {
+  // Normalize paths by removing trailing slashes
+  const normalizedFrom = from.replace(/\/+$/, '');
+  const normalizedTo = to.replace(/\/+$/, '');
+
+  // If 'to' starts with 'from', just remove the prefix
+  if (normalizedTo.startsWith(normalizedFrom + '/')) {
+    return normalizedTo.slice(normalizedFrom.length + 1);
+  }
+
+  // If they're equal, return empty
+  if (normalizedTo === normalizedFrom) {
+    return '';
+  }
+
+  // Fallback: return the full 'to' path
+  return normalizedTo;
+}
 
 const logger = createScopedLogger('FilesStore');
 
@@ -84,10 +106,10 @@ export class FilesStore {
     const webcontainer = await this.#webcontainer;
 
     try {
-      const relativePath = nodePath.relative(webcontainer.workdir, filePath);
+      const relPath = relativePath(webcontainer.workdir, filePath);
 
-      if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
+      if (!relPath) {
+        throw new Error(`EINVAL: invalid file path, write '${relPath}'`);
       }
 
       const oldContent = this.getFile(filePath)?.content;
@@ -96,7 +118,7 @@ export class FilesStore {
         unreachable('Expected content to be defined');
       }
 
-      await webcontainer.fs.writeFile(relativePath, content);
+      await webcontainer.fs.writeFile(relPath, content);
 
       if (!this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.set(filePath, oldContent);

@@ -37,7 +37,9 @@ export const description = atom<string | undefined>(undefined);
 
 export function useChatHistory() {
   const navigate = useNavigate();
-  const mixedId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : undefined;
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const isRootRoute = pathname === '/';
+  const mixedId = !isRootRoute ? pathname.split('/').pop() : undefined;
 
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
@@ -46,6 +48,12 @@ export function useChatHistory() {
   useEffect(() => {
     // Only run on client side
     if (typeof window === 'undefined') {
+      setReady(true);
+      return;
+    }
+
+    // If on root route, don't try to load or create chats - just mark as ready
+    if (isRootRoute) {
       setReady(true);
       return;
     }
@@ -71,6 +79,7 @@ export function useChatHistory() {
             description.set(storedMessages.description);
             chatId.set(storedMessages.id);
           } else {
+            // Chat not found, redirect to root
             navigate(`/`, { replace: true });
           }
 
@@ -80,16 +89,8 @@ export function useChatHistory() {
           setReady(true);
         }
       } else {
-        try {
-          const nextId = await getNextId(db);
-          const newUrlId = await getUrlId(db, nextId);
-
-          chatId.set(nextId);
-          navigate(`/chat/${newUrlId}`, { replace: true });
-        } catch (error) {
-          toast.error('Failed to create new chat');
-          setReady(true);
-        }
+        // No chat ID provided on non-root route - shouldn't happen
+        setReady(true);
       }
     };
 

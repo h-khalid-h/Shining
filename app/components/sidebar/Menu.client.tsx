@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { db, deleteById, getAll, chatId, type ChatHistoryItem } from '~/lib/persistence';
+import { getDb, deleteById, getAll, chatId, type ChatHistoryItem } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
 import { HistoryItem } from './HistoryItem';
@@ -37,8 +37,10 @@ export function Menu() {
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const loadEntries = useCallback(() => {
+  const loadEntries = useCallback(async () => {
+    const db = await getDb();
     if (db) {
       getAll(db)
         .then((list) => list.filter((item) => item.urlId && item.description))
@@ -47,9 +49,10 @@ export function Menu() {
     }
   }, []);
 
-  const deleteItem = useCallback((event: React.UIEvent, item: ChatHistoryItem) => {
+  const deleteItem = useCallback(async (event: React.UIEvent, item: ChatHistoryItem) => {
     event.preventDefault();
 
+    const db = await getDb();
     if (db) {
       deleteById(db, item.id)
         .then(() => {
@@ -117,11 +120,22 @@ export function Menu() {
             Start new chat
           </a>
         </div>
+        <div className="px-4 pb-3">
+          <input
+            type="text"
+            placeholder="Search chats..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 rounded-md bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-borderColorActive text-sm"
+          />
+        </div>
         <div className="text-bolt-elements-textPrimary font-medium pl-6 pr-5 my-2">Your Chats</div>
         <div className="flex-1 overflow-scroll pl-4 pr-5 pb-5">
           {list.length === 0 && <div className="pl-2 text-bolt-elements-textTertiary">No previous conversations</div>}
           <DialogRoot open={dialogContent !== null}>
-            {binDates(list).map(({ category, items }) => (
+            {binDates(list.filter(item =>
+              !searchQuery || item.description.toLowerCase().includes(searchQuery.toLowerCase())
+            )).map(({ category, items }) => (
               <div key={category} className="mt-4 first:mt-0 space-y-1">
                 <div className="text-bolt-elements-textTertiary sticky top-0 z-1 bg-bolt-elements-background-depth-2 pl-2 pt-2 pb-1">
                   {category}

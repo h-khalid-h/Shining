@@ -1,5 +1,8 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useStore } from '@nanostores/react';
 import type { FileMap } from '~/lib/stores/files';
+import { graphStore } from '~/lib/stores/graph';
+import { CoherenceBadge } from '~/components/intelligence/CoherenceBadge';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 
@@ -36,6 +39,7 @@ export const FileTree = memo(
   }: Props) => {
     renderLogger.trace('FileTree');
 
+    const graph = useStore(graphStore);
     const computedHiddenFiles = useMemo(() => [...DEFAULT_HIDDEN_FILES, ...(hiddenFiles ?? [])], [hiddenFiles]);
 
     const fileList = useMemo(() => {
@@ -121,6 +125,8 @@ export const FileTree = memo(
                   selected={selectedFile === fileOrFolder.fullPath}
                   file={fileOrFolder}
                   unsavedChanges={unsavedFiles?.has(fileOrFolder.fullPath)}
+                  showCoherence={!!graph.north}
+                  coherence={graph.signal?.drift ? Math.max(0, 100 - graph.signal.drift) : 85}
                   onClick={() => {
                     onFileSelect?.(fileOrFolder.fullPath);
                   }}
@@ -183,10 +189,12 @@ interface FileProps {
   file: FileNode;
   selected: boolean;
   unsavedChanges?: boolean;
+  showCoherence?: boolean;
+  coherence?: number;
   onClick: () => void;
 }
 
-function File({ file: { depth, name }, onClick, selected, unsavedChanges = false }: FileProps) {
+function File({ file: { depth, name }, onClick, selected, unsavedChanges = false, showCoherence = false, coherence = 85 }: FileProps) {
   return (
     <NodeButton
       className={classNames('group transition-colors duration-150', {
@@ -200,12 +208,15 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
       onClick={onClick}
     >
       <div
-        className={classNames('flex items-center transition-colors duration-150', {
+        className={classNames('flex items-center gap-1.5 w-full transition-colors duration-150', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
       >
-        <div className="flex-1 truncate pr-2">{name}</div>
-        {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
+        <div className="flex-1 truncate">{name}</div>
+        <div className="flex items-center gap-1 shrink-0">
+          {showCoherence && <CoherenceBadge score={coherence} size="sm" showTooltip={false} />}
+          {unsavedChanges && <span className="i-ph:circle-fill scale-68 text-orange-500" />}
+        </div>
       </div>
     </NodeButton>
   );

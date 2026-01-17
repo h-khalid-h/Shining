@@ -132,17 +132,18 @@ export const Preview = memo(() => {
               <div className="absolute inset-0 flex items-center justify-center bg-bolt-elements-background-depth-1 z-10">
                 <div className="flex flex-col items-center gap-3">
                   <LoadingSpinner size="lg" />
-                  <p className="text-sm text-bolt-elements-textSecondary">Loading preview...</p>
+                  <p className="text-sm text-bolt-elements-textSecondary">Initializing preview environment...</p>
                 </div>
               </div>
             )}
             {hasError && (
               <div className="absolute inset-0 z-10 bg-bolt-elements-background-depth-1">
                 <ErrorState
-                  title="Failed to load preview"
-                  message="The preview could not be loaded. This might be due to a network issue or the application not being ready yet."
+                  title="Preview Environment Initializing"
+                  message="The preview is taking longer than expected to load. This can happen when the application is starting up or if there's a configuration issue."
                   onRetry={reloadPreview}
                   icon="i-ph:browser-duotone"
+                  suggestion="Try refreshing the preview. If the issue persists, check the browser console for any error messages that might help diagnose the problem."
                 />
               </div>
             )}

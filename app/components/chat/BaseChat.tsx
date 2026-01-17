@@ -1,7 +1,5 @@
 import type { Message } from 'ai';
-import React, { type RefCallback } from 'react';
-import { Menu } from '~/components/sidebar/Menu.client';
-import { Workbench } from '~/components/workbench/Workbench.client';
+import React, { type RefCallback, lazy, Suspense } from 'react';
 import { classNames } from '~/utils/classNames';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
@@ -9,8 +7,13 @@ import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/Button';
+import { ClientOnly } from '~/components/ui/ClientOnly';
 
 import styles from './BaseChat.module.scss';
+
+// Lazy load components that use browser-only features
+const Menu = lazy(() => import('~/components/sidebar/Menu.client').then(m => ({ default: m.Menu })));
+const Workbench = lazy(() => import('~/components/workbench/Workbench.client').then(m => ({ default: m.Workbench })));
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
@@ -28,12 +31,12 @@ interface BaseChatProps {
   enhancePrompt?: () => void;
 }
 
+// Outcome-focused example prompts for Meldon - The Intelligence Layer
 const EXAMPLE_PROMPTS = [
-  { text: 'Build a todo app in React using Tailwind', icon: 'i-ph:code-duotone' },
-  { text: 'Build a simple blog using Astro', icon: 'i-ph:pen-duotone' },
-  { text: 'Create a cookie consent form using Material UI', icon: 'i-ph:cookie-duotone' },
-  { text: 'Make a space invaders game', icon: 'i-ph:game-controller-duotone' },
-  { text: 'How do I center a div?', icon: 'i-ph:question-duotone' },
+  { text: 'Help me understand what architecture best achieves scalability for my use case', icon: 'i-ph:graph-duotone' },
+  { text: 'Build a dashboard that gives me insights into user behavior patterns', icon: 'i-ph:chart-line-up-duotone' },
+  { text: 'Create a system that captures and qualifies leads automatically', icon: 'i-ph:funnel-duotone' },
+  { text: 'Design a pricing calculator that optimizes for conversion', icon: 'i-ph:calculator-duotone' },
 ];
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -65,11 +68,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ref={ref}
         className={classNames(
           styles.BaseChat,
-          'relative flex h-full w-full overflow-hidden bg-bolt-elements-background-depth-1',
+          'relative flex h-full w-full overflow-hidden bg-bolt-elements-background-depth-1 pt-12',
         )}
         data-chat-visible={showChat}
       >
-        <Menu />
+        <ClientOnly>
+          <Suspense fallback={null}>
+            <Menu />
+          </Suspense>
+        </ClientOnly>
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
           <div
             className={classNames(
@@ -86,10 +93,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 transition={{ duration: 0.4, ease: 'easeOut' }}
               >
                 <h1 className="text-5xl text-center font-bold text-bolt-elements-textPrimary mb-2">
-                  Where ideas begin
+                  Meldon
                 </h1>
                 <p className="mb-4 text-center text-bolt-elements-textSecondary">
-                  Bring ideas to life in seconds or get help on existing projects.
+                  The Intelligence Layer
+                </p>
+                <p className="text-sm text-center text-bolt-elements-textTertiary max-w-md mx-auto">
+                  I understand context, track intent, and help you build with purpose.
                 </p>
               </motion.div>
             )}
@@ -120,13 +130,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ref={textareaRef}
                     className={`w-full pl-4 pt-4 pr-16 focus:outline-none resize-none text-md text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent`}
                     onKeyDown={(event) => {
+                      // Cmd/Ctrl + Enter to send
+                      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                        event.preventDefault();
+                        sendMessage?.(event);
+                        return;
+                      }
+
+                      // Cmd/Ctrl + K for prompt enhancement
+                      if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
+                        event.preventDefault();
+                        if (input.trim().length > 0 && !enhancingPrompt) {
+                          enhancePrompt?.();
+                        }
+                        return;
+                      }
+
+                      // Escape to clear input
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        handleInputChange?.({ target: { value: '' } } as any);
+                        return;
+                      }
+
+                      // Regular Enter without modifiers
                       if (event.key === 'Enter') {
                         if (event.shiftKey) {
                           return;
                         }
 
                         event.preventDefault();
-
                         sendMessage?.(event);
                       }
                     }}
@@ -138,7 +171,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       minHeight: TEXTAREA_MIN_HEIGHT,
                       maxHeight: TEXTAREA_MAX_HEIGHT,
                     }}
-                    placeholder="How can Bolt help you today?"
+                    placeholder="Tell me what you want to achieve"
                     translate="no"
                   />
                   <SendButton
@@ -182,10 +215,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </Button>
                     </div>
                     {input.length > 3 ? (
-                      <div className="text-xs text-bolt-elements-textTertiary">
-                        Use <kbd className="kdb">Shift</kbd> + <kbd className="kdb">Return</kbd> for a new line
+                      <div className="text-xs text-bolt-elements-textTertiary flex items-center gap-4">
+                        <span>
+                          <kbd className="kdb">Shift</kbd> + <kbd className="kdb">Return</kbd> for new line
+                        </span>
+                        <span>
+                          <kbd className="kdb">⌘</kbd> + <kbd className="kdb">K</kbd> to enhance
+                        </span>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="text-xs text-bolt-elements-textTertiary">
+                        <kbd className="kdb">⌘</kbd> + <kbd className="kdb">Enter</kbd> to send
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="bg-bolt-elements-background-depth-1 pb-6">{/* Ghost Element */}</div>
@@ -207,9 +249,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         sendMessage?.(event, examplePrompt.text);
                       }}
                       className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
-                      initial={{ opacity: 0, x: -10 }}
+                      initial={{ opacity: 1, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+                      transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
                     >
                       <div className="text-lg">
                         <div className={examplePrompt.icon} />
@@ -222,7 +264,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </motion.div>
             )}
           </div>
-          <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />
+          <ClientOnly>
+            <Suspense fallback={null}>
+              <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />
+            </Suspense>
+          </ClientOnly>
         </div>
       </div>
     );

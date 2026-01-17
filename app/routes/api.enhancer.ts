@@ -9,12 +9,20 @@ const logger = createScopedLogger('Enhancer');
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+// Helper to get env vars from either cloudflare context or process.env
+function getEnv(context: Route.ActionArgs['context']) {
+  return context.cloudflare?.env || process.env;
+}
+
 export async function action(args: Route.ActionArgs) {
   return enhancerAction(args);
 }
 
-async function enhancerAction({ context, request }: ActionFunctionArgs) {
+async function enhancerAction({ context, request }: Route.ActionArgs) {
   const { message } = await request.json<{ message: string }>();
+
+  // Get environment variables
+  const env = getEnv(context);
 
   try {
     const result = await streamText(
@@ -32,7 +40,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
         `,
         },
       ],
-      context.cloudflare.env,
+      env,
     );
 
     const transformStream = new TransformStream({

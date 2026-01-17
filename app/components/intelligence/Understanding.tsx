@@ -52,29 +52,46 @@ export function Understanding({ north, bounds, onConfirm, onDismiss, visible = t
         <AnimatePresence>
             {visible && (
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3, ease: 'easeOut' }}
-                    className="understanding-card"
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    className="understanding-card bg-bolt-elements-background-depth-1 rounded-lg shadow-lg border border-bolt-elements-borderColor p-4 max-w-md"
                 >
                     <div className="flex items-start gap-3 mb-4">
-                        <div className="i-ph:lightbulb text-2xl text-bolt-elements-textSecondary" />
+                        <motion.div
+                            className="i-ph:lightbulb text-2xl text-blue-500"
+                            animate={{ rotate: [0, 10, -10, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                        />
                         <div className="flex-1">
                             <h3 className="text-sm font-medium text-bolt-elements-textSecondary mb-1">
                                 I understand you want to:
                             </h3>
-                            <p className="text-base font-semibold text-bolt-elements-textPrimary mb-2">{north.statement}</p>
-                            <div className="flex items-center gap-2">
-                                <div
-                                    className={classNames(
-                                        'i-ph:check-circle text-sm',
-                                        getConfidenceColor(north.confidence),
-                                    )}
-                                />
-                                <span className={classNames('text-xs', getConfidenceColor(north.confidence))}>
-                                    {getConfidenceLabel(north.confidence)} ({north.confidence}%)
-                                </span>
+                            <p className="text-base font-semibold text-bolt-elements-textPrimary mb-3">{north.statement}</p>
+
+                            {/* Confidence Progress Bar */}
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className={classNames('font-medium', getConfidenceColor(north.confidence))}>
+                                        {getConfidenceLabel(north.confidence)}
+                                    </span>
+                                    <span className={classNames('font-bold', getConfidenceColor(north.confidence))}>
+                                        {north.confidence}%
+                                    </span>
+                                </div>
+                                <div className="h-2 bg-bolt-elements-background-depth-3 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className={classNames('h-full rounded-full', {
+                                            'bg-green-500': north.confidence >= 80,
+                                            'bg-yellow-500': north.confidence >= 70 && north.confidence < 80,
+                                            'bg-orange-500': north.confidence < 70
+                                        })}
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${north.confidence}%` }}
+                                        transition={{ duration: 1, ease: "easeOut" }}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -84,11 +101,17 @@ export function Understanding({ north, bounds, onConfirm, onDismiss, visible = t
                             <h4 className="text-xs font-medium text-bolt-elements-textSecondary mb-2">Constraints:</h4>
                             <div className="space-y-2">
                                 {bounds.map((bound, index) => (
-                                    <div key={index} className="flex items-center gap-2">
+                                    <motion.div
+                                        key={index}
+                                        className="flex items-center gap-2"
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                    >
                                         <div className={classNames(metricIcons[bound.metric], 'text-sm text-bolt-elements-textTertiary')} />
                                         <span className="text-sm text-bolt-elements-textSecondary">{metricLabels[bound.metric]}:</span>
                                         <span className="text-sm text-bolt-elements-textPrimary font-medium">{bound.value}</span>
-                                    </div>
+                                    </motion.div>
                                 ))}
                             </div>
                         </div>
@@ -96,26 +119,30 @@ export function Understanding({ north, bounds, onConfirm, onDismiss, visible = t
 
                     <div className="flex items-center gap-2">
                         {onConfirm && (
-                            <button
+                            <motion.button
                                 onClick={onConfirm}
                                 className="flex-1 px-4 py-2 bg-bolt-elements-button-primary-background hover:bg-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text rounded-lg text-sm font-medium transition-colors"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                             >
                                 <div className="flex items-center justify-center gap-2">
                                     <div className="i-ph:check text-base" />
                                     <span>Looks good</span>
                                 </div>
-                            </button>
+                            </motion.button>
                         )}
                         {onDismiss && (
-                            <button
+                            <motion.button
                                 onClick={onDismiss}
                                 className="flex-1 px-4 py-2 bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary rounded-lg text-sm font-medium transition-colors"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                             >
                                 <div className="flex items-center justify-center gap-2">
                                     <div className="i-ph:x text-base" />
                                     <span>Not quite</span>
                                 </div>
-                            </button>
+                            </motion.button>
                         )}
                     </div>
                 </motion.div>

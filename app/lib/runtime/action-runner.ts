@@ -1,10 +1,24 @@
 import { WebContainer } from '@webcontainer/api';
 import { map, type MapStore } from 'nanostores';
-import * as nodePath from 'node:path';
 import type { BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
+
+/**
+ * Browser-compatible path.dirname() replacement
+ * Returns the directory portion of a path
+ */
+function dirname(filePath: string): string {
+  const lastSlash = filePath.lastIndexOf('/');
+  if (lastSlash === -1) {
+    return '.';
+  }
+  if (lastSlash === 0) {
+    return '/';
+  }
+  return filePath.slice(0, lastSlash);
+}
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -156,7 +170,7 @@ export class ActionRunner {
 
     const webcontainer = await this.#webcontainer;
 
-    let folder = nodePath.dirname(action.filePath);
+    let folder = dirname(action.filePath);
 
     // remove trailing slashes
     folder = folder.replace(/\/+$/g, '');

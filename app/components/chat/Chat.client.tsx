@@ -1,204 +1,241 @@
-import { useState, useEffect } from 'react';
+/**
+ * Chat - Full Chat Integration
+ * 
+ * This component connects all chat features:
+ * - BaseChat UI with Workbench and Menu
+ * - Streaming AI responses
+ * - Artifact parsing and execution
+ * - Prompt enhancement
+ * - Chat history persistence
+ */
+import { useRef, useEffect, useCallback, useState } from 'react';
+import type { Message } from 'ai';
+import { useStore } from '@nanostores/react';
+import { BaseChat } from './BaseChat';
+import { chatStore } from '~/lib/stores/chat';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { useMessageParser } from '~/lib/hooks/useMessageParser';
+import { usePromptEnhancer } from '~/lib/hooks/usePromptEnhancer';
+import { useSnapScroll } from '~/lib/hooks/useSnapScroll';
+import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
+import { description as descriptionStore } from '~/lib/persistence/useChatHistory';
+import { fetchWithRetry } from '~/lib/utils/fetch-utils';
+import { createScopedLogger } from '~/utils/logger';
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
+const logger = createScopedLogger('Chat');
+
+export interface ChatProps {
+    initialMessages?: Message[];
+    storeMessageHistory?: (messages: Message[]) => void;
+    onMessageCountChange?: (count: number) => void;
 }
 
-interface ChatProps {
-  onMessageCountChange?: (count: number) => void;
-}
+export function Chat({ initialMessages = [], storeMessageHistory, onMessageCountChange }: ChatProps) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const [messages, setMessages] = useState<Message[]>(initialMessages);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-export function Chat({ onMessageCountChange }: ChatProps = {}) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+    const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
+    const { parsedMessages, parseMessages } = useMessageParser();
+    const isOnline = useConnectionStatus();
+    // useSnapScroll returns [messageRef, scrollRef] - auto-scrolls via ResizeObserver
+    const [messageRef, scrollRef] = useSnapScroll();
 
-  // Update message count when messages change
-  useEffect(() => {
-    onMessageCountChange?.(messages.length);
-  }, [messages.length, onMessageCountChange]);
+    // Update message count when messages change
+    useEffect(() => {
+        onMessageCountChange?.(messages.length);
+    }, [messages.length, onMessageCountChange]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    // Parse messages when they change
+    useEffect(() => {
+        parseMessages(messages, isLoading);
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-    };
+        if (messages.length > 0 && !isLoading) {
+            chatStore.setKey('started', true);
+        }
+    }, [messages, isLoading]);
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
+    // Store messages when they change
+    useEffect(() => {
+        if (messages.length > 0) {
+            storeMessageHistory?.(messages);
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
-      });
+            // Extract description from first message
+            if (messages.length === 1 && messages[0].role === 'user') {
+                const content = messages[0].content;
+                const firstSentence = content.split(/[.!?]/)[0].slice(0, 100);
+                descriptionStore.set(firstSentence);
+            }
+        }
+    }, [messages]);
 
-      if (!response.ok) {
-        // Try to parse error details from response
-        let errorContent = 'Sorry, I encountered an error. Please try again.';
+    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(event.target.value);
+    }, []);
 
-        try {
-          const errorData = await response.json();
-          const errorMsg = errorData.message || '';
+    const handleStop = useCallback(() => {
+        chatStore.setKey('aborted', true);
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        setIsLoading(false);
+    }, []);
 
-          // Provide specific error messages based on error type
-          if (errorMsg.includes('ANTHROPIC_API_KEY') || errorMsg.includes('API key')) {
-            errorContent = '⚠️ API key not configured. Please add your ANTHROPIC_API_KEY to the .env file and restart the server.';
-          } else if (errorMsg.includes('rate limit')) {
-            errorContent = '⏱️ Rate limit exceeded. Please wait a moment and try again.';
-          } else if (errorMsg.includes('model:')) {
-            errorContent = '🔧 Model configuration error. Please check your API key and model settings.';
-          } else if (response.status === 401) {
-            errorContent = '🔑 Invalid API key. Please check your ANTHROPIC_API_KEY in the .env file.';
-          } else if (response.status === 500) {
-            errorContent = `❌ Server error: ${errorMsg}. Please check the console for details.`;
-          }
-        } catch {
-          // If we can't parse the error, use status-based messages
-          if (response.status === 401) {
-            errorContent = '🔑 Authentication failed. Please check your API key configuration.';
-          } else if (response.status === 500) {
-            errorContent = '❌ Server error. Please check the console for details.';
-          }
+    const sendMessage = useCallback(async (event: React.UIEvent, messageInput?: string) => {
+        event.preventDefault();
+
+        const messageText = messageInput || input;
+        if (!messageText.trim() || isLoading) return;
+
+        // Check connection status
+        if (!isOnline) {
+            const offlineMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: '🔌 You\'re currently offline. Please check your internet connection and try again.',
+            };
+            setMessages(prev => [...prev, offlineMessage]);
+            return;
         }
 
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: errorContent,
+        // Reset states
+        resetEnhancer();
+        setInput('');
+        chatStore.setKey('started', true);
+        chatStore.setKey('aborted', false);
+        workbenchStore.resetAllFileModifications();
+
+        // Add user message
+        const userMessage: Message = {
+            id: Date.now().toString(),
+            role: 'user',
+            content: messageText,
         };
-        setMessages((prev) => [...prev, errorMessage]);
-        setIsLoading(false);
-        return;
-      }
 
-      const data = await response.json();
+        const updatedMessages = [...messages, userMessage];
+        setMessages(updatedMessages);
+        setIsLoading(true);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.message || 'I received your message!',
-      };
+        // Create abort controller for this request
+        abortControllerRef.current = new AbortController();
 
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
+        try {
+            const response = await fetchWithRetry(
+                '/api/chat',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: updatedMessages }),
+                    signal: abortControllerRef.current.signal,
+                },
+                2, // 2 retries
+                30000 // 30 second timeout
+            );
 
-      // Network or parsing error
-      let errorContent = '🌐 Network error. Please check your connection and try again.';
+            if (!response.ok) {
+                throw new Error('Failed to send message');
+            }
 
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        errorContent = '🌐 Cannot connect to server. Please ensure the development server is running.';
-      } else if (error instanceof SyntaxError) {
-        errorContent = '⚠️ Received invalid response from server. Please check the console for details.';
-      }
+            // Read streaming response
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('No response body');
 
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: errorContent,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            const decoder = new TextDecoder();
+            let assistantContent = '';
+            const assistantId = (Date.now() + 1).toString();
 
-  return (
-    <div className="flex flex-col h-full w-full">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-2xl">
-              <h2 className="text-2xl font-semibold mb-4">Start a conversation</h2>
-              <p className="text-gray-600 mb-6">
-                Ask me anything about your goals, projects, or strategic planning.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                <button
-                  onClick={() => setInput("Help me define my project goals")}
-                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
-                >
-                  <p className="text-sm font-medium">💡 "Help me define my project goals"</p>
-                </button>
-                <button
-                  onClick={() => setInput("What are my strategic options?")}
-                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
-                >
-                  <p className="text-sm font-medium">🎯 "What are my strategic options?"</p>
-                </button>
-                <button
-                  onClick={() => setInput("Show me my decision map")}
-                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
-                >
-                  <p className="text-sm font-medium">📊 "Show me my decision map"</p>
-                </button>
-                <button
-                  onClick={() => setInput("How do I get started?")}
-                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-left transition-colors"
-                >
-                  <p className="text-sm font-medium">🚀 "How do I get started?"</p>
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="max-w-4xl mx-auto space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`p-4 rounded-lg ${message.role === 'user'
-                  ? 'bg-blue-50 border border-blue-200 ml-auto max-w-[80%]'
-                  : 'bg-gray-50 border border-gray-200 mr-auto max-w-[80%]'
-                  }`}
-              >
-                <div className="font-semibold mb-1 text-sm text-gray-600">
-                  {message.role === 'user' ? 'You' : 'Shining AI'}
-                </div>
-                <div className="whitespace-pre-wrap text-gray-800">{message.content}</div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex items-center gap-2 text-gray-500">
-                <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />
-                <span>Thinking...</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+            // Add empty assistant message immediately
+            const assistantMessage: Message = {
+                id: assistantId,
+                role: 'assistant',
+                content: '',
+            };
+            setMessages([...updatedMessages, assistantMessage]);
 
-      {/* Input Area */}
-      <div className="border-t bg-white p-4">
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={isLoading}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? 'Sending...' : 'Send'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+
+                // Parse AI SDK stream format
+                const lines = chunk.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('0:')) {
+                        const match = line.match(/^0:"(.*)"/);
+                        if (match) {
+                            const text = match[1]
+                                .replace(/\\n/g, '\n')
+                                .replace(/\\"/g, '"')
+                                .replace(/\\\\/g, '\\');
+                            assistantContent += text;
+                        }
+                    }
+                }
+
+                // Update the assistant message with streaming content
+                setMessages(prev => {
+                    const updated = [...prev];
+                    const lastIdx = updated.length - 1;
+                    if (lastIdx >= 0 && updated[lastIdx].role === 'assistant') {
+                        updated[lastIdx] = { ...updated[lastIdx], content: assistantContent };
+                    }
+                    return updated;
+                });
+            }
+
+        } catch (error) {
+            logger.error('Chat error:', error);
+
+            // Determine error type and provide contextual message
+            let errorContent = '';
+
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                // Network error
+                errorContent = '🔌 Network connection lost. Your conversation is saved locally and will sync when reconnected. Please check your internet connection and try again.';
+            } else if (error instanceof Error && error.message.includes('Failed to send message')) {
+                // API error
+                errorContent = '🤖 I encountered an issue connecting to my intelligence backend. This might be temporary - please try again in a moment.';
+            } else {
+                // Generic error with helpful suggestion
+                errorContent = '⚠️ I had trouble processing that request. Let\'s try rephrasing your message or breaking it into smaller parts.';
+            }
+
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: errorContent,
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [input, messages, isLoading]);
+
+    const handleEnhancePrompt = useCallback(() => {
+        enhancePrompt(input, setInput);
+    }, [input, enhancePrompt]);
+
+    return (
+        <BaseChat
+            ref={scrollRef}
+            textareaRef={textareaRef}
+            messageRef={messageRef}
+            scrollRef={scrollRef}
+            showChat={true}
+            isStreaming={isLoading}
+            messages={messages.map((msg, idx) => ({
+                ...msg,
+                content: parsedMessages[idx] !== undefined ? parsedMessages[idx] : msg.content,
+            }))}
+            enhancingPrompt={enhancingPrompt}
+            promptEnhanced={promptEnhanced}
+            input={input}
+            sendMessage={sendMessage}
+            handleInputChange={handleInputChange}
+            enhancePrompt={handleEnhancePrompt}
+            handleStop={handleStop}
+        />
+    );
 }

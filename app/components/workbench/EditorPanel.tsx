@@ -23,6 +23,8 @@ import { isMobile } from '~/utils/mobile';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { Terminal, type TerminalRef } from './terminal/Terminal';
+import { FileIntentHeader } from '~/components/intelligence/FileIntentHeader';
+import { graphStore } from '~/lib/stores/graph';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -60,6 +62,7 @@ export const EditorPanel = memo(
 
     const theme = useStore(themeStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
+    const graph = useStore(graphStore);
 
     const terminalRefs = useRef<Array<TerminalRef | null>>([]);
     const terminalPanelRef = useRef<ImperativePanelHandle>(null);
@@ -176,6 +179,16 @@ export const EditorPanel = memo(
                   </div>
                 )}
               </PanelHeader>
+
+              {/* Intent Header - Shows intent for current file */}
+              {editorDocument && graph.north && (
+                <FileIntentHeader
+                  fileName={selectedFile || ''}
+                  intent={graph.north.description}
+                  coherence={graph.signal?.drift ? Math.max(0, 100 - graph.signal.drift) : 85}
+                />
+              )}
+
               <div className="h-full flex-1 overflow-hidden">
                 <CodeMirrorEditor
                   theme={theme}
