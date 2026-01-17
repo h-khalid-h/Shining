@@ -44,7 +44,7 @@ export function useVectors(userId: string | null) {
         }
     };
 
-    const selectVector = (vector: Vector) => {
+    const selectVector = async (vector: Vector) => {
         setSelectedVector(vector);
 
         // Track selection
@@ -54,7 +54,35 @@ export function useVectors(userId: string | null) {
             approach: vector.description,
         });
 
-        // TODO: Store as Pivot in graph database
+        // Store as Pivot in graph database
+        try {
+            const response = await fetch('/api/vectors/pivot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    vectorId: vector.id,
+                    northId: vector.northId,
+                    userId,
+                    approach: vector.description,
+                    confidence: vector.confidence,
+                    metadata: {
+                        selectedAt: new Date().toISOString(),
+                        vectorType: vector.type || 'strategic',
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                console.error('Failed to store pivot:', await response.text());
+            } else {
+                console.log('✓ Pivot stored successfully');
+            }
+        } catch (err) {
+            console.error('Error storing pivot:', err);
+            // Non-blocking - selection still works even if storage fails
+        }
     };
 
     const clearVectors = () => {

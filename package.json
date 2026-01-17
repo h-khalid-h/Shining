@@ -24,6 +24,8 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.39",
+    "@ai-sdk/google": "^3.0.10",
+    "@ai-sdk/openai": "^3.0.12",
     "@anthropic-ai/sdk": "^0.71.2",
     "@clerk/react-router": "^2.3.9",
     "@codemirror/autocomplete": "^6.17.0",

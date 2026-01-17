@@ -8,7 +8,7 @@
  * - Prompt enhancement
  * - Chat history persistence
  */
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import type { Message } from 'ai';
 import { useStore } from '@nanostores/react';
 import { BaseChat } from './BaseChat';
@@ -18,8 +18,13 @@ import { useMessageParser } from '~/lib/hooks/useMessageParser';
 import { usePromptEnhancer } from '~/lib/hooks/usePromptEnhancer';
 import { useSnapScroll } from '~/lib/hooks/useSnapScroll';
 import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
+import { useIntentPrediction } from '~/lib/hooks/useIntentPrediction';
+import { useDebounce } from '~/lib/hooks/useDebounce';
 import { description as descriptionStore } from '~/lib/persistence/useChatHistory';
 import { fetchWithRetry } from '~/lib/utils/fetch-utils';
+import { IntentSuggestions } from '~/components/intelligence/IntentSuggestions';
+import { DecisionCards, type DecisionPoint } from '~/components/intelligence/DecisionCards';
+import { detectDecisionPoint, matchDecisionResponse } from '~/lib/intelligence/decision-detector';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('Chat');
@@ -36,12 +41,21 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
     const [messages, setMessages] = useState<Message[]>(initialMessages);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [pendingDecision, setPendingDecision] = useState<DecisionPoint | null>(null);
+    const [awaitingDecisionResponse, setAwaitingDecisionResponse] = useState(false);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
     const isOnline = useConnectionStatus();
-    // useSnapScroll returns [messageRef, scrollRef] - auto-scrolls via ResizeObserver
-    const [messageRef, scrollRef] = useSnapScroll();
+    const { prediction, loading: predicting, predictIntent, clearPrediction } = useIntentPrediction(
+        messages.map(m => m.content).slice(-3)
+    );
+    // useSnapScroll returns [messageRef, scrollRef] - auto-scrolls when messages change
+    const [messageRef, scrollRef] = useSnapScroll([messages]);
+
+    // Debounce input for intent prediction
+    const debouncedInput = useDebounce(input, 500);
 
     // Update message count when messages change
     useEffect(() => {
@@ -71,6 +85,17 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
         }
     }, [messages]);
 
+    // Trigger intent prediction when user types
+    useEffect(() => {
+        if (debouncedInput.length >= 15 && !isLoading) {
+            setShowSuggestions(true);
+            predictIntent(debouncedInput);
+        } else {
+            setShowSuggestions(false);
+            clearPrediction();
+        }
+    }, [debouncedInput, isLoading]);
+
     const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(event.target.value);
     }, []);
@@ -81,6 +106,20 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
         abortControllerRef.current = null;
         setIsLoading(false);
     }, []);
+
+    const handleApplySuggestion = useCallback((autoCompleteText: string) => {
+        setInput(autoCompleteText);
+        setShowSuggestions(false);
+        clearPrediction();
+        textareaRef.current?.focus();
+    }, []);
+
+    const handleDismissSuggestions = useCallback(() => {
+        setShowSuggestions(false);
+        clearPrediction();
+    }, []);
+
+
 
     const sendMessage = useCallback(async (event: React.UIEvent, messageInput?: string) => {
         event.preventDefault();
@@ -213,13 +252,36 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
         }
     }, [input, messages, isLoading]);
 
+    const handleDecisionSelection = useCallback((optionId: string, decisionContext?: DecisionPoint) => {
+        const decision = decisionContext || pendingDecision;
+
+        if (!decision) return;
+
+        const selectedOption = decision.options.find(opt => opt.id === optionId);
+        let userChoiceText = '';
+
+        if (optionId === 'idk') {
+            userChoiceText = "I'm not sure, please recommend the best option.";
+        } else if (optionId === 'more') {
+            userChoiceText = "Can you show me more options?";
+        } else if (selectedOption) {
+            userChoiceText = `${selectedOption.label}`;
+        }
+
+        setPendingDecision(null);
+        setAwaitingDecisionResponse(false);
+
+        // Send user selection to backend
+        sendMessage({ preventDefault: () => { } } as React.UIEvent, userChoiceText);
+
+    }, [pendingDecision, sendMessage]);
+
     const handleEnhancePrompt = useCallback(() => {
         enhancePrompt(input, setInput);
     }, [input, enhancePrompt]);
 
     return (
         <BaseChat
-            ref={scrollRef}
             textareaRef={textareaRef}
             messageRef={messageRef}
             scrollRef={scrollRef}
@@ -229,6 +291,7 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
                 ...msg,
                 content: parsedMessages[idx] !== undefined ? parsedMessages[idx] : msg.content,
             }))}
+            onSelectDecision={handleDecisionSelection}
             enhancingPrompt={enhancingPrompt}
             promptEnhanced={promptEnhanced}
             input={input}
@@ -236,6 +299,16 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
             handleInputChange={handleInputChange}
             enhancePrompt={handleEnhancePrompt}
             handleStop={handleStop}
+            intentSuggestionsSlot={
+                showSuggestions ? (
+                    <IntentSuggestions
+                        prediction={prediction}
+                        loading={predicting}
+                        onApplySuggestion={handleApplySuggestion}
+                        onDismiss={handleDismissSuggestions}
+                    />
+                ) : null
+            }
         />
     );
 }

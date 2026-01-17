@@ -8,6 +8,7 @@ export interface ContextRibbonProps {
     confidence?: number;
     onClickUnderstanding: () => void;
     isUnderstandingExpanded: boolean;
+    onViewHistory?: () => void;
 }
 
 export function ContextRibbon({
@@ -15,7 +16,8 @@ export function ContextRibbon({
     drift,
     confidence = 0,
     onClickUnderstanding,
-    isUnderstandingExpanded
+    isUnderstandingExpanded,
+    onViewHistory
 }: ContextRibbonProps) {
     const getDriftColor = (driftValue: number) => {
         if (driftValue < 10) return 'text-green-500';
@@ -135,6 +137,22 @@ export function ContextRibbon({
                                     Drift: {drift}%
                                 </span>
                             </motion.div>
+
+                            {/* View History Button */}
+                            {onViewHistory && (
+                                <motion.button
+                                    onClick={onViewHistory}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4 transition-colors border border-bolt-elements-borderColor"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    title="View drift history and analytics"
+                                >
+                                    <div className="i-ph:chart-line text-base text-bolt-elements-textSecondary" />
+                                    <span className="text-xs font-medium text-bolt-elements-textSecondary">
+                                        History
+                                    </span>
+                                </motion.button>
+                            )}
                         </div>
                     </div>
                 </div>

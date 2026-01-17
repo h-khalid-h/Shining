@@ -3,12 +3,14 @@ import React from 'react';
 import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
+import { DecisionCards, type DecisionPoint } from '~/components/intelligence/DecisionCards';
 
 interface MessagesProps {
   id?: string;
   className?: string;
   isStreaming?: boolean;
   messages?: Message[];
+  onSelectDecision?: (optionId: string, decision: DecisionPoint) => void;
 }
 
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: MessagesProps, ref) => {
@@ -41,6 +43,16 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
               <div className="grid grid-col-1 w-full">
                 {isUserMessage ? (
                   <UserMessage content={content} />
+                ) : content.startsWith('__DECISION_CARD__') ? (
+                  (() => {
+                    const decision = JSON.parse(content.replace('__DECISION_CARD__', '')) as DecisionPoint;
+                    return (
+                      <DecisionCards
+                        decision={decision}
+                        onSelectOption={(optionId) => props.onSelectDecision?.(optionId, decision)}
+                      />
+                    );
+                  })()
                 ) : (
                   <AssistantMessage
                     content={content}

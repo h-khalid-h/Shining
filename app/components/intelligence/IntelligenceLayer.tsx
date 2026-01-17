@@ -4,16 +4,19 @@ import { graphStore } from '~/lib/stores/graph';
 import { useUnderstanding } from '~/lib/hooks/useUnderstanding';
 import { useVectors } from '~/lib/hooks/useVectors';
 import { useDebounce } from '~/lib/hooks/useDebounce';
-import { Understanding } from '~/components/intelligence/Understanding';
-import { VectorOptions } from '~/components/intelligence/VectorOptions';
-import { DriftNudge } from '~/components/intelligence/DriftNudge';
+import { useDriftHistory } from '~/lib/hooks/useDriftHistory';
 import { IntelligenceLoadingState } from '~/components/intelligence/IntelligenceLoadingState';
 import { ContextRibbon } from '~/components/intelligence/ContextRibbon';
 import { detectDrift, shouldShowDriftAlert } from '~/lib/intelligence/drift-detector';
 import { LoadingSpinner } from '~/components/ui/LoadingSpinner';
 
-// Lazy load GraphVisualization for better performance
+// Lazy load Intelligence components for better performance
+const Understanding = lazy(() => import('~/components/intelligence/Understanding').then(m => ({ default: m.Understanding })));
+const VectorOptions = lazy(() => import('~/components/intelligence/VectorOptions').then(m => ({ default: m.VectorOptions })));
+const DriftNudge = lazy(() => import('~/components/intelligence/DriftNudge').then(m => ({ default: m.DriftNudge })));
+const NorthEditor = lazy(() => import('~/components/intelligence/NorthEditor').then(m => ({ default: m.NorthEditor })));
 const GraphVisualization = lazy(() => import('~/components/intelligence/GraphVisualization').then(m => ({ default: m.GraphVisualization })));
+const DriftTimelineModal = lazy(() => import('~/components/intelligence/DriftTimelineModal').then(m => ({ default: m.DriftTimelineModal })));
 
 export interface IntelligenceLayerProps {
     userId: string | null;
@@ -24,11 +27,14 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
     const graph = useStore(graphStore);
     const understanding = useUnderstanding(messageCount, userId);
     const vectors = useVectors(userId);
+    const { saveSnapshot } = useDriftHistory(userId);
 
     const [lastDriftAlert, setLastDriftAlert] = useState<number | null>(null);
     const [showGraph, setShowGraph] = useState(false);
     const [isUnderstandingExpanded, setIsUnderstandingExpanded] = useState(false);
     const [intelligenceError, setIntelligenceError] = useState(false);
+    const [showNorthEditor, setShowNorthEditor] = useState(false);
+    const [showDriftTimeline, setShowDriftTimeline] = useState(false);
 
     // Auto-generate vectors after Understanding is confirmed
     useEffect(() => {
@@ -57,6 +63,63 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
     }, [debouncedSignal]);
 
     const showDrift = driftAlert && shouldShowDriftAlert(lastDriftAlert, graph.signal.drift);
+
+    // Track drift history - save snapshot when drift changes
+    useEffect(() => {
+        if (graph.north && graph.signal && graph.signal.drift !== undefined && messageCount > 0 && userId) {
+            saveSnapshot({
+                conversationId: userId,
+                messageIndex: messageCount,
+                driftScore: graph.signal.drift,
+                driftType: driftAlert?.type || 'none',
+                contextSnapshot: {
+                    north: graph.north,
+                    bounds: graph.bounds,
+                    signal: graph.signal,
+                },
+                timestamp: Date.now(),
+            }).catch(err => console.error('Failed to save drift snapshot:', err));
+        }
+    }, [graph.signal?.drift, messageCount]);
+
+    // Handle North update
+    const handleUpdateNorth = async (updatedDescription: string) => {
+        if (!graph.north || !userId) return;
+
+        try {
+            const response = await fetch('/api/graph/update-north', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    northId: graph.north.id,
+                    description: updatedDescription,
+                    userId,
+                    confidence: graph.north.confidence,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update North');
+            }
+
+            const data = await response.json();
+            console.log('✓ North updated successfully:', data);
+
+            // Update local graph store
+            graphStore.set({
+                ...graph,
+                north: {
+                    ...graph.north,
+                    description: updatedDescription,
+                },
+            });
+        } catch (error) {
+            console.error('Error updating North:', error);
+            throw error;
+        }
+    };
 
     return (
         <>
@@ -92,6 +155,7 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                     confidence={graph.north.confidence}
                     onClickUnderstanding={() => setIsUnderstandingExpanded(!isUnderstandingExpanded)}
                     isUnderstandingExpanded={isUnderstandingExpanded}
+                    onViewHistory={() => setShowDriftTimeline(true)}
                 />
             )}
 
@@ -107,16 +171,18 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                     </div>
                 ) : (
                     <div className="fixed top-16 right-6 z-40">
-                        <Understanding
-                            north={understanding.north}
-                            bounds={understanding.bounds}
-                            onConfirm={() => {
-                                understanding.onConfirm();
-                                setIsUnderstandingExpanded(false);
-                            }}
-                            onDismiss={() => setIsUnderstandingExpanded(false)}
-                            visible={true}
-                        />
+                        <Suspense fallback={<LoadingSpinner size="sm" />}>
+                            <Understanding
+                                north={understanding.north}
+                                bounds={understanding.bounds}
+                                onConfirm={() => {
+                                    understanding.onConfirm();
+                                    setIsUnderstandingExpanded(false);
+                                }}
+                                onDismiss={() => setIsUnderstandingExpanded(false)}
+                                visible={true}
+                            />
+                        </Suspense>
                     </div>
                 )
             )}
@@ -131,28 +197,41 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                     />
                 </div>
             ) : vectors.vectors.length > 0 && !vectors.selectedVector && (
-                <VectorOptions
-                    vectors={vectors.vectors}
-                    onSelect={vectors.selectVector}
-                    onDismiss={vectors.clearVectors}
-                />
+                <Suspense fallback={<LoadingSpinner size="sm" />}>
+                    <VectorOptions
+                        vectors={vectors.vectors}
+                        onSelect={vectors.selectVector}
+                        onDismiss={vectors.clearVectors}
+                    />
+                </Suspense>
             )}
 
             {/* Drift Nudge - shows when drifting */}
             {showDrift && driftAlert && (
-                <DriftNudge
-                    alert={driftAlert}
-                    onAcknowledge={() => setLastDriftAlert(Date.now())}
-                    onAdjustGoal={() => {
-                        // TODO: Open North editor
-                        console.log('Adjust goal clicked');
-                    }}
-                    onCreateVector={() => {
-                        if (graph.north && graph.bounds.length > 0) {
-                            vectors.generateVectors(graph.north, graph.bounds);
-                        }
-                    }}
-                />
+                <Suspense fallback={null}>
+                    <DriftNudge
+                        alert={driftAlert}
+                        onAcknowledge={() => setLastDriftAlert(Date.now())}
+                        onAdjustGoal={() => setShowNorthEditor(true)}
+                        onCreateVector={() => {
+                            if (graph.north && graph.bounds.length > 0) {
+                                vectors.generateVectors(graph.north, graph.bounds);
+                            }
+                        }}
+                    />
+                </Suspense>
+            )}
+
+            {/* North Editor Modal */}
+            {graph.north && (
+                <Suspense fallback={null}>
+                    <NorthEditor
+                        north={graph.north}
+                        onSave={handleUpdateNorth}
+                        onClose={() => setShowNorthEditor(false)}
+                        visible={showNorthEditor}
+                    />
+                </Suspense>
             )}
 
             {/* Graph Visualization - toggle button */}
@@ -219,6 +298,15 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                     />
                 </Suspense>
             )}
+
+            {/* Drift Timeline Modal */}
+            <Suspense fallback={null}>
+                <DriftTimelineModal
+                    conversationId={userId}
+                    onClose={() => setShowDriftTimeline(false)}
+                    visible={showDriftTimeline}
+                />
+            </Suspense>
         </>
     );
 }

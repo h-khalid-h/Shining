@@ -25,6 +25,7 @@ async function chatAction({ context, request }: Route.ActionArgs) {
 
   const { messages } = await request.json<{ messages: Messages }>();
 
+
   // Get environment variables
   const env = getEnv(context);
 

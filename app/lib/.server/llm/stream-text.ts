@@ -1,8 +1,8 @@
 import { streamText as _streamText, convertToCoreMessages } from 'ai';
 import { getAPIKey } from '~/lib/.server/llm/api-key';
-import { getAnthropicModel } from '~/lib/.server/llm/model';
 import { MAX_TOKENS } from './constants';
 import { getSystemPrompt } from './prompts';
+import { getProviderManager } from './provider-manager';
 
 interface ToolResult<Name extends string, Args, Result> {
   toolCallId: string;
@@ -21,12 +21,26 @@ export type Messages = Message[];
 
 export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], 'model'>;
 
-export function streamText(messages: Messages, env: Env, options?: StreamingOptions) {
-  return _streamText({
-    model: getAnthropicModel(getAPIKey(env)),
-    system: getSystemPrompt(),
-    maxTokens: MAX_TOKENS,
-    messages: convertToCoreMessages(messages),
-    ...options,
-  });
+/**
+ * Stream text with automatic provider failover
+ * Attempts providers in priority order: Anthropic → Google Gemini → OpenAI
+ * Seamlessly rotates to next provider on error
+ */
+export async function streamText(messages: Messages, env: Env, options?: StreamingOptions) {
+  const manager = getProviderManager();
+
+  const { result } = await manager.executeWithFailover(
+    async (provider, model) => {
+      return _streamText({
+        model,
+        system: getSystemPrompt(),
+        maxTokens: MAX_TOKENS,
+        messages: convertToCoreMessages(messages),
+        ...options,
+      });
+    },
+    env
+  );
+
+  return result;
 }

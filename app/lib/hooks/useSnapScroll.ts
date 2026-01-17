@@ -1,52 +1,51 @@
-import { useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
-export function useSnapScroll() {
-  const autoScrollRef = useRef(true);
-  const scrollNodeRef = useRef<HTMLDivElement>();
-  const onScrollRef = useRef<() => void>();
-  const observerRef = useRef<ResizeObserver>();
+/**
+ * Hook that provides refs for auto-scrolling to the latest message.
+ * Uses a "sticky" scroll pattern: if user is at bottom, it stays at bottom when content updates.
+ */
+export function useSnapScroll<T = any>(dependencies?: T[]) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const messageRef = useRef<HTMLDivElement>(null); // Kept for API compatibility but not used for observer
 
-  const messageRef = useCallback((node: HTMLDivElement | null) => {
-    if (node) {
-      const observer = new ResizeObserver(() => {
-        if (autoScrollRef.current && scrollNodeRef.current) {
-          const { scrollHeight, clientHeight } = scrollNodeRef.current;
-          const scrollTarget = scrollHeight - clientHeight;
+  // Track if we are at the bottom. Start true to allow initial scroll.
+  const isAtBottomRef = useRef(true);
 
-          scrollNodeRef.current.scrollTo({
-            top: scrollTarget,
-          });
-        }
+  // 1. Setup Scroll Listener to track user position
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      // Use a generous threshold (e.g. 50px) to consider "at bottom"
+      const distance = scrollHeight - scrollTop - clientHeight;
+      isAtBottomRef.current = distance < 50;
+    };
+
+    // Initial check
+    handleScroll();
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 2. React to Content Updates (Dependencies)
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    // If we were at the bottom (before this update), assume we want to stay there
+    if (isAtBottomRef.current) {
+      // requestAnimationFrame ensures we scroll after layout updates
+      requestAnimationFrame(() => {
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: 'smooth'
+        });
       });
-
-      observer.observe(node);
-    } else {
-      observerRef.current?.disconnect();
-      observerRef.current = undefined;
     }
-  }, []);
+  }, dependencies || []);
 
-  const scrollRef = useCallback((node: HTMLDivElement | null) => {
-    if (node) {
-      onScrollRef.current = () => {
-        const { scrollTop, scrollHeight, clientHeight } = node;
-        const scrollTarget = scrollHeight - clientHeight;
-
-        autoScrollRef.current = Math.abs(scrollTop - scrollTarget) <= 10;
-      };
-
-      node.addEventListener('scroll', onScrollRef.current);
-
-      scrollNodeRef.current = node;
-    } else {
-      if (onScrollRef.current) {
-        scrollNodeRef.current?.removeEventListener('scroll', onScrollRef.current);
-      }
-
-      scrollNodeRef.current = undefined;
-      onScrollRef.current = undefined;
-    }
-  }, []);
-
-  return [messageRef, scrollRef];
+  return [messageRef, scrollRef] as const;
 }
