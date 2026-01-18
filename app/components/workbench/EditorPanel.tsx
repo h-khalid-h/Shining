@@ -126,9 +126,9 @@ export const EditorPanel = memo(
     };
 
     return (
-      <PanelGroup direction="vertical">
+      <PanelGroup orientation="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
-          <PanelGroup direction="horizontal">
+          <PanelGroup orientation="horizontal">
             <Panel defaultSize={20} minSize={10} collapsible>
               <div className="flex flex-col border-r border-bolt-elements-borderColor h-full">
                 <PanelHeader>
