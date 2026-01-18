@@ -1,5 +1,4 @@
 import { streamText as _streamText } from 'ai';
-import type { CoreMessage } from 'ai';
 import { getAPIKey } from '~/lib/.server/llm/api-key';
 import { MAX_TOKENS } from './constants';
 import { getSystemPrompt } from './prompts';
@@ -32,8 +31,8 @@ export async function streamText(messages: Messages, env: Env, options?: Streami
 
   const { result } = await manager.executeWithFailover(
     async (provider, model) => {
-      // Convert to CoreMessage format that streamText accepts directly
-      const coreMessages: CoreMessage[] = messages.map(m => ({
+      // Convert to message format that streamText accepts
+      const formattedMessages = messages.map(m => ({
         role: m.role,
         content: m.content,
       }));
@@ -41,7 +40,7 @@ export async function streamText(messages: Messages, env: Env, options?: Streami
       return _streamText({
         model,
         system: getSystemPrompt(),
-        messages: coreMessages,
+        messages: formattedMessages,
         ...options,
       });
     },
