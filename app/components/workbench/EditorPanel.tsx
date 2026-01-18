@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle, type PanelImperativeHandle as ImperativePanelHandle } from 'react-resizable-panels';
 import {
   CodeMirrorEditor,
   type EditorDocument,
