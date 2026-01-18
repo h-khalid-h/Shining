@@ -206,7 +206,7 @@ export const EditorPanel = memo(
         </Panel>
         <PanelResizeHandle />
         <Panel
-          ref={terminalPanelRef}
+          panelRef={terminalPanelRef}
           defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
           minSize={10}
           collapsible

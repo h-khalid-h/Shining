@@ -1,4 +1,11 @@
-import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
+import type { WebContainer } from '@webcontainer/api';
+
+// PathWatcherEvent type for v1.6+
+type PathWatcherEvent = {
+  type: 'add_dir' | 'remove_dir' | 'add_file' | 'change' | 'remove_file' | 'update_directory';
+  path: string;
+  buffer?: Uint8Array;
+};
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
 import { Buffer } from 'node:buffer';
@@ -138,7 +145,8 @@ export class FilesStore {
   async #init() {
     const webcontainer = await this.#webcontainer;
 
-    webcontainer.internal.watchPaths(
+    // @ts-ignore - internal API
+    webcontainer.internal?.watchPaths?.(
       { include: [`${WORK_DIR}/**`], exclude: ['**/node_modules', '.git'], includeContent: true },
       bufferWatchEvents(100, this.#processEventBuffer.bind(this)),
     );
