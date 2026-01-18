@@ -1,13 +1,9 @@
 import type { Route } from './+types/api.enhancer';
-import { StreamingTextResponse, parseStreamPart } from 'ai';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { stripIndents } from '~/utils/stripIndent';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('Enhancer');
-
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 // Helper to get env vars from either cloudflare context or process.env
 function getEnv(context: Route.ActionArgs['context']) {
@@ -43,23 +39,8 @@ async function enhancerAction({ context, request }: Route.ActionArgs) {
       env,
     );
 
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        const processedChunk = decoder
-          .decode(chunk)
-          .split('\n')
-          .filter((line) => line !== '')
-          .map(parseStreamPart)
-          .map((part) => part.value)
-          .join('');
-
-        controller.enqueue(encoder.encode(processedChunk));
-      },
-    });
-
-    const transformedStream = result.toAIStream().pipeThrough(transformStream);
-
-    return new StreamingTextResponse(transformedStream);
+    // v6 API: Use toDataStreamResponse directly
+    return result.toDataStreamResponse();
   } catch (error) {
     logger.error('Failed to enhance prompt:', error);
 

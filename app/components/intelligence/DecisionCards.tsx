@@ -180,7 +180,7 @@ export function DecisionCards({ decision, onSelectOption, userId }: DecisionCard
                         </h4>
                     </div>
                     <p className="text-sm text-bolt-elements-textSecondary">
-                        Let Meldon decide based on best practices and your context
+                        Let Gence decide based on best practices and your context
                     </p>
                 </motion.button>
 

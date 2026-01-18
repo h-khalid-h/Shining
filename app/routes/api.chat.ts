@@ -2,7 +2,6 @@ import type { Route } from './+types/api.chat';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
-import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import { createScopedLogger } from '~/utils/logger';
 import { getOptionalAuth } from '~/lib/auth.server';
 import { IntegrationService } from '~/lib/intelligence/integration.server';
@@ -25,12 +24,42 @@ async function chatAction({ context, request }: Route.ActionArgs) {
 
   const { messages } = await request.json<{ messages: Messages }>();
 
+  const messageCount = messages.length;
 
   // Get environment variables
   const env = getEnv(context);
 
+  // Auto-detect and create North from first user message (simplified pattern matching)
+  if (userId && messageCount === 1 && messages[0]?.role === 'user') {
+    const firstMessage = messages[0].content;
+
+    // Simple pattern matching for goal indicators
+    const goalPatterns = [
+      /^i want to (build|create|make|develop)/i,
+      /^my goal is to/i,
+      /^i'm (building|creating|making|developing)/i,
+      /^help me (build|create|make|develop)/i,
+    ];
+
+    const hasGoalPattern = goalPatterns.some(pattern => pattern.test(firstMessage.trim()));
+
+    if (hasGoalPattern) {
+      // Create North in background (don't await to avoid blocking chat)
+      fetch(new URL('/api/north/create', request.url).toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: firstMessage.trim(),
+          userId,
+          confidence: 0.75,
+        }),
+      }).catch(err => {
+        logger.warn('Background North creation failed', err);
+      });
+    }
+  }
+
   // Run background extraction if user is authenticated and should extract
-  const messageCount = messages.length;
   const shouldRunExtraction = shouldExtract(messageCount);
 
   if (
@@ -84,48 +113,18 @@ async function chatAction({ context, request }: Route.ActionArgs) {
     logger.debug('Skipping extraction', { userId, messageCount, reason: 'not enough messages' });
   }
 
-  const stream = new SwitchableStream();
-
   try {
-    const options: StreamingOptions = {
-      toolChoice: 'none',
-      onFinish: async ({ text: content, finishReason }) => {
-        if (finishReason !== 'length') {
-          return stream.close();
-        }
+    // Provider manager handles failover automatically
+    // Will try: Google Gemini → OpenAI (Anthropic temporarily disabled)
+    const result = await streamText(messages, env);
 
-        if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
-          throw Error('Cannot continue message: Maximum segments reached');
-        }
-
-        const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
-
-        logger.warn(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
-
-        messages.push({ role: 'assistant', content });
-        messages.push({ role: 'user', content: CONTINUE_PROMPT });
-
-        const result = await streamText(messages, env, options);
-
-        return stream.switchSource(result.toAIStream());
-      },
-    };
-
-    const result = await streamText(messages, env, options);
-
-    stream.switchSource(result.toAIStream());
-
-    return new Response(stream.readable, {
-      status: 200,
-      headers: {
-        contentType: 'text/plain; charset=utf-8',
-      },
-    });
+    // AI SDK v6: use toTextStreamResponse() directly
+    return result.toTextStreamResponse();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : '';
 
-    logger.error('Chat API error:', {
+    logger.error('Chat API error (all providers failed):', {
       message: errorMessage,
       stack: errorStack,
       error,

@@ -17,6 +17,12 @@ export interface ArtifactState {
   runner: ActionRunner;
 }
 
+export interface ArtifactTrackingContext {
+  northId?: string;
+  userId?: string;
+  env?: any;
+}
+
 export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
 
 type Artifacts = MapStore<Record<string, ArtifactState>>;
@@ -28,6 +34,7 @@ export class WorkbenchStore {
   #filesStore = new FilesStore(webcontainer);
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer);
+  #trackingContext: ArtifactTrackingContext = {};
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -222,6 +229,14 @@ export class WorkbenchStore {
      */
   }
 
+  /**
+   * Set tracking context for Kinetic tracking
+   * Should be called when North is established and user is authenticated
+   */
+  setTrackingContext(context: ArtifactTrackingContext) {
+    this.#trackingContext = context;
+  }
+
   addArtifact({ messageId, title, id }: ArtifactCallbackData) {
     const artifact = this.#getArtifact(messageId);
 
@@ -237,7 +252,7 @@ export class WorkbenchStore {
       id,
       title,
       closed: false,
-      runner: new ActionRunner(webcontainer),
+      runner: new ActionRunner(webcontainer, this.#trackingContext),
     });
   }
 

@@ -1,10 +1,12 @@
 import { useState, useEffect, lazy, Suspense, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useStore } from '@nanostores/react';
 import { graphStore } from '~/lib/stores/graph';
 import { useUnderstanding } from '~/lib/hooks/useUnderstanding';
 import { useVectors } from '~/lib/hooks/useVectors';
 import { useDebounce } from '~/lib/hooks/useDebounce';
 import { useDriftHistory } from '~/lib/hooks/useDriftHistory';
+import { useIntelligenceShortcuts } from '~/lib/hooks/useIntelligenceShortcuts';
 import { IntelligenceLoadingState } from '~/components/intelligence/IntelligenceLoadingState';
 import { ContextRibbon } from '~/components/intelligence/ContextRibbon';
 import { detectDrift, shouldShowDriftAlert } from '~/lib/intelligence/drift-detector';
@@ -17,6 +19,7 @@ const DriftNudge = lazy(() => import('~/components/intelligence/DriftNudge').the
 const NorthEditor = lazy(() => import('~/components/intelligence/NorthEditor').then(m => ({ default: m.NorthEditor })));
 const GraphVisualization = lazy(() => import('~/components/intelligence/GraphVisualization').then(m => ({ default: m.GraphVisualization })));
 const DriftTimelineModal = lazy(() => import('~/components/intelligence/DriftTimelineModal').then(m => ({ default: m.DriftTimelineModal })));
+const IntelligenceDashboard = lazy(() => import('~/components/intelligence/IntelligenceDashboard').then(m => ({ default: m.IntelligenceDashboard })));
 
 export interface IntelligenceLayerProps {
     userId: string | null;
@@ -35,6 +38,7 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
     const [intelligenceError, setIntelligenceError] = useState(false);
     const [showNorthEditor, setShowNorthEditor] = useState(false);
     const [showDriftTimeline, setShowDriftTimeline] = useState(false);
+    const [showDashboard, setShowDashboard] = useState(false);
 
     // Auto-generate vectors after Understanding is confirmed
     useEffect(() => {
@@ -120,6 +124,12 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
             throw error;
         }
     };
+
+    // Register keyboard shortcuts
+    useIntelligenceShortcuts({
+        toggleDashboard: () => setShowDashboard(prev => !prev),
+        toggleGraph: () => setShowGraph(prev => !prev),
+    });
 
     return (
         <>
@@ -236,25 +246,40 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
 
             {/* Graph Visualization - toggle button */}
             {graph.north && (
-                <button
-                    onClick={() => setShowGraph(!showGraph)}
-                    style={{
-                        position: 'fixed',
-                        bottom: '20px',
-                        left: '20px',
-                        padding: '12px 20px',
-                        background: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        zIndex: 999,
-                    }}
-                >
-                    {showGraph ? 'Hide' : 'View'} Decision Map
-                </button>
+                <div className="fixed bottom-6 left-6 flex gap-3 z-999">
+                    <button
+                        onClick={() => setShowDashboard(!showDashboard)}
+                        style={{
+                            padding: '12px 20px',
+                            background: '#8b5cf6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        }}
+                    >
+                        📊 {showDashboard ? 'Hide' : 'View'} Dashboard
+                    </button>
+                    <button
+                        onClick={() => setShowGraph(!showGraph)}
+                        style={{
+                            padding: '12px 20px',
+                            background: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        }}
+                    >
+                        🗺️ {showGraph ? 'Hide' : 'View'} Decision Map
+                    </button>
+                </div>
             )}
 
             {/* Graph Visualization Modal */}
@@ -307,6 +332,35 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                     visible={showDriftTimeline}
                 />
             </Suspense>
+
+            {/* Intelligence Dashboard Modal */}
+            {showDashboard && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-bolt-elements-background-depth-1 rounded-lg shadow-2xl w-full max-w-6xl h-[80vh] overflow-hidden border border-bolt-elements-borderColor"
+                    >
+                        <div className="flex items-center justify-between p-4 border-b border-bolt-elements-borderColor">
+                            <h2 className="text-xl font-bold text-bolt-elements-textPrimary">Intelligence Dashboard</h2>
+                            <button
+                                onClick={() => setShowDashboard(false)}
+                                className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
+                            >
+                                <div className="i-ph:x text-2xl" />
+                            </button>
+                        </div>
+                        <Suspense fallback={
+                            <div className="flex items-center justify-center h-full">
+                                <LoadingSpinner size="lg" />
+                            </div>
+                        }>
+                            <IntelligenceDashboard userId={userId} />
+                        </Suspense>
+                    </motion.div>
+                </div>
+            )}
         </>
     );
 }

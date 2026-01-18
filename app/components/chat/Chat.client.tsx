@@ -11,6 +11,7 @@
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import type { Message } from 'ai';
 import { useStore } from '@nanostores/react';
+import { useAuth, useClerk } from '@clerk/react-router';
 import { BaseChat } from './BaseChat';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -20,6 +21,7 @@ import { useSnapScroll } from '~/lib/hooks/useSnapScroll';
 import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { useIntentPrediction } from '~/lib/hooks/useIntentPrediction';
 import { useDebounce } from '~/lib/hooks/useDebounce';
+import { useAutoKineticTracking } from '~/lib/hooks/useAutoKineticTracking';
 import { description as descriptionStore } from '~/lib/persistence/useChatHistory';
 import { fetchWithRetry } from '~/lib/utils/fetch-utils';
 import { IntentSuggestions } from '~/components/intelligence/IntentSuggestions';
@@ -45,17 +47,35 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
     const [pendingDecision, setPendingDecision] = useState<DecisionPoint | null>(null);
     const [awaitingDecisionResponse, setAwaitingDecisionResponse] = useState(false);
 
+    const { userId } = useAuth();
+    const clerk = useClerk();
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
     const isOnline = useConnectionStatus();
     const { prediction, loading: predicting, predictIntent, clearPrediction } = useIntentPrediction(
         messages.map(m => m.content).slice(-3)
     );
+
+    // Auto-configure Kinetic tracking when North exists and user is authenticated    useAutoKineticTracking();
+
     // useSnapScroll returns [messageRef, scrollRef] - auto-scrolls when messages change
     const [messageRef, scrollRef] = useSnapScroll([messages]);
 
     // Debounce input for intent prediction
     const debouncedInput = useDebounce(input, 500);
+
+    // Restore pending message after login
+    useEffect(() => {
+        if (userId) {
+            const pendingMessage = localStorage.getItem('gence_pending_message');
+            if (pendingMessage) {
+                setInput(pendingMessage);
+                localStorage.removeItem('gence_pending_message');
+                // Focus textarea
+                setTimeout(() => textareaRef.current?.focus(), 100);
+            }
+        }
+    }, [userId]);
 
     // Update message count when messages change
     useEffect(() => {
@@ -127,6 +147,15 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
         const messageText = messageInput || input;
         if (!messageText.trim() || isLoading) return;
 
+        // Auth gate: require login before sending messages
+        if (!userId) {
+            // Store pending message
+            localStorage.setItem('gence_pending_message', messageText);
+            // Open Clerk sign-in modal
+            clerk.openSignIn();
+            return;
+        }
+
         // Check connection status
         if (!isOnline) {
             const offlineMessage: Message = {
@@ -196,22 +225,9 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
                 const { value, done } = await reader.read();
                 if (done) break;
 
+                // AI SDK v6: toTextStreamResponse returns plain text, not data format
                 const chunk = decoder.decode(value, { stream: true });
-
-                // Parse AI SDK stream format
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('0:')) {
-                        const match = line.match(/^0:"(.*)"/);
-                        if (match) {
-                            const text = match[1]
-                                .replace(/\\n/g, '\n')
-                                .replace(/\\"/g, '"')
-                                .replace(/\\\\/g, '\\');
-                            assistantContent += text;
-                        }
-                    }
-                }
+                assistantContent += chunk;
 
                 // Update the assistant message with streaming content
                 setMessages(prev => {
@@ -223,6 +239,25 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
                     return updated;
                 });
             }
+
+            // Check if response is empty (API provider failures)
+            if (!assistantContent || assistantContent.trim() === '') {
+                const errorMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: '🤖 I encountered an issue connecting to my intelligence backend. This might be temporary - please try again in a moment.',
+                };
+                setMessages(prev => {
+                    // Replace the empty assistant message with error message
+                    const updated = [...prev];
+                    const lastIdx = updated.length - 1;
+                    if (lastIdx >= 0 && updated[lastIdx].role === 'assistant') {
+                        updated[lastIdx] = errorMessage;
+                    }
+                    return updated;
+                });
+            }
+
 
         } catch (error) {
             logger.error('Chat error:', error);

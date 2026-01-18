@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/react-router';
 import { Chat } from '~/components/chat/Chat.client';
 import { IntelligenceLayerClient } from '~/components/intelligence/IntelligenceLayer.client';
+import { Menu } from '~/components/sidebar/Menu.client';
+import { Header } from '~/components/header/Header';
 import { useChatHistory } from '~/lib/persistence/useChatHistory';
 import { ErrorBoundary } from '~/components/ui/ErrorBoundary';
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Meldon - The Intelligence Layer' }, { name: 'description', content: 'Intelligent development partner that understands context, tracks intent, and builds with purpose' }];
+  return [{ title: 'Gence - The Intelligence Layer' }, { name: 'description', content: 'Intelligent development partner that understands context, tracks intent, and builds with purpose' }];
 };
 
 export default function Index() {
@@ -29,17 +31,34 @@ export default function Index() {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-bolt-elements-background-depth-1">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-bolt-elements-background-depth-1">
+      {/* Header - Always visible */}
       <ErrorBoundary>
-        <Chat
-          initialMessages={initialMessages}
-          storeMessageHistory={storeMessageHistory}
-          onMessageCountChange={setMessageCount}
-        />
+        <Header />
       </ErrorBoundary>
-      <ErrorBoundary>
-        <IntelligenceLayerClient userId={userId ?? null} messageCount={messageCount} />
-      </ErrorBoundary>
+
+      {/* Main content area with sidebar */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Sidebar - Opens on hover */}
+        <ErrorBoundary>
+          <Menu />
+        </ErrorBoundary>
+
+        {/* Chat and Intelligence Layer */}
+        <div className="flex flex-1 overflow-hidden">
+          <ErrorBoundary>
+            <Chat
+              initialMessages={initialMessages}
+              storeMessageHistory={storeMessageHistory}
+              onMessageCountChange={setMessageCount}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <IntelligenceLayerClient userId={userId ?? null} messageCount={messageCount} />
+          </ErrorBoundary>
+        </div>
+      </div>
     </div>
   );
 }
+

@@ -1,13 +1,14 @@
 import type { Route } from './+types/api.graph.$northId.signal';
 import { requireAuth } from '~/lib/auth.server';
 import { GraphService } from '~/lib/intelligence/graph.server';
+import { calculateSignalFromKinetics, storeSignal } from '~/lib/intelligence/signal-calculator.server';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('GraphAPI');
 
 /**
  * POST /api/graph/:northId/signal
- * Recalculates signal for a North
+ * Auto-calculates signal from Kinetic data and stores it
  */
 export async function action({ context, params, request }: Route.ActionArgs) {
     const userId = await requireAuth({ context, request });
@@ -21,32 +22,39 @@ export async function action({ context, params, request }: Route.ActionArgs) {
         return Response.json({ error: 'Graph database not configured' }, { status: 503 });
     }
 
-    const graph = new GraphService({
-        uri: context.cloudflare.env.NEO4J_URI,
-        username: context.cloudflare.env.NEO4J_USERNAME || 'neo4j',
-        password: context.cloudflare.env.NEO4J_PASSWORD,
-    });
-
     try {
-        const signal = await graph.updateSignal(northId);
+        // Calculate signal from Kinetics
+        const signal = await calculateSignalFromKinetics(northId, context.cloudflare.env);
 
-        logger.info('Signal recalculated', { northId, userId, signal });
+        if (!signal) {
+            return Response.json(
+                {
+                    error: 'No Kinetic data available to calculate signal',
+                    success: false,
+                },
+                { status: 404 },
+            );
+        }
+
+        // Store signal in graph
+        await storeSignal(northId, signal, userId, context.cloudflare.env);
+
+        logger.info('Signal auto-calculated and stored', { northId, userId, signal });
 
         return Response.json({
             signal,
             success: true,
+            message: 'Signal calculated from Kinetic data',
         });
     } catch (error) {
-        logger.error('Failed to recalculate signal', { northId, error });
+        logger.error('Failed to calculate signal', { northId, error });
 
         return Response.json(
             {
-                error: 'Failed to recalculate signal',
+                error: 'Failed to calculate signal',
                 success: false,
             },
             { status: 500 },
         );
-    } finally {
-        await graph.close();
     }
 }

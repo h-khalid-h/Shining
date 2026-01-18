@@ -4,6 +4,27 @@ import type { BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
+import { graphStore } from '~/lib/stores/graph';
+
+/**
+ * Client-side helper: Calculate effort for shell commands
+ */
+function calculateShellEffort(command: string): number {
+  if (/npm install|yarn add|pnpm install/.test(command)) return 3;
+  if (/build|compile|bundle/.test(command)) return 4;
+  if (/test|jest|vitest/.test(command)) return 2;
+  return 1;
+}
+
+/**
+ * Client-side helper: Calculate alignment for shell commands
+ */
+function calculateShellAlignment(command: string, exitCode: number): number {
+  if (exitCode !== 0) return 30;
+  if (/npm install|yarn add|pnpm install/.test(command)) return 85;
+  if (/build|test/.test(command)) return 90;
+  return 75;
+}
 
 /**
  * Browser-compatible path.dirname() replacement
@@ -50,11 +71,17 @@ type ActionsMap = MapStore<Record<string, ActionState>>;
 export class ActionRunner {
   #webcontainer: Promise<WebContainer>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
+  #northId?: string;
+  #userId?: string;
+  #env?: any;
 
   actions: ActionsMap = map({});
 
-  constructor(webcontainerPromise: Promise<WebContainer>) {
+  constructor(webcontainerPromise: Promise<WebContainer>, options?: { northId?: string; userId?: string; env?: any }) {
     this.#webcontainer = webcontainerPromise;
+    this.#northId = options?.northId;
+    this.#userId = options?.userId;
+    this.#env = options?.env;
   }
 
   addAction(data: ActionCallbackData) {
@@ -161,6 +188,29 @@ export class ActionRunner {
     const exitCode = await process.exit;
 
     logger.debug(`Process terminated with code ${exitCode}`);
+
+    // Track shell command as kinetic via API
+    if (this.#northId && this.#userId) {
+      fetch('/api/graph/kinetics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          northId: this.#northId,
+          userId: this.#userId,
+          kinetic: {
+            type: 'digital',
+            description: `Ran: ${action.content}`,
+            status: exitCode === 0 ? 'complete' : 'failed',
+            alignmentScore: calculateShellAlignment(action.content, exitCode),
+            effort: calculateShellEffort(action.content),
+            metadata: {
+              command: action.content,
+              exitCode,
+            },
+          },
+        }),
+      }).catch(err => logger.warn('Failed to track shell kinetic:', err));
+    }
   }
 
   async #runFileAction(action: ActionState) {
@@ -187,6 +237,32 @@ export class ActionRunner {
     try {
       await webcontainer.fs.writeFile(action.filePath, action.content);
       logger.debug(`File written ${action.filePath}`);
+
+      // Track file write as kinetic via API
+      if (this.#northId && this.#userId) {
+        const lines = action.content.split('\n').length;
+
+        fetch('/api/graph/kinetics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            northId: this.#northId,
+            userId: this.#userId,
+            kinetic: {
+              type: 'digital',
+              description: `Created/Updated ${action.filePath}`,
+              status: 'complete',
+              alignmentScore: 80, // Default score
+              effort: Math.min(5, Math.ceil(lines / 100)),
+              metadata: {
+                filePath: action.filePath,
+                linesAdded: lines,
+                content: action.content.slice(0, 2000), // Send snippet for server-side AI scoring
+              },
+            },
+          }),
+        }).catch(err => logger.warn('Failed to track file kinetic:', err));
+      }
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
     }

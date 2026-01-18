@@ -1,5 +1,5 @@
 import type { Route } from './+types/api.predict-intent';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import { getProviderManager } from '~/lib/.server/llm/provider-manager';
 
 // Helper to get env vars from either cloudflare context or process.env
@@ -20,9 +20,9 @@ export async function action({ context, request }: Route.ActionArgs) {
         // Use provider manager for automatic failover
         const { result } = await manager.executeWithFailover(
             async (provider, model) => {
-                return streamText({
+                return generateText({
                     model,
-                    system: 'You are an intent prediction assistant for Meldon, an intelligent development partner.',
+                    system: 'You are an intent prediction assistant for Gence, an intelligent development partner.',
                     prompt: predictionPrompt,
                     maxTokens: 500,
                 });
@@ -30,8 +30,8 @@ export async function action({ context, request }: Route.ActionArgs) {
             env
         );
 
-        // Convert stream to text and parse
-        const fullText = await result.text;
+        // Get the text response
+        const fullText = result.text;
 
         try {
             const prediction = JSON.parse(fullText);

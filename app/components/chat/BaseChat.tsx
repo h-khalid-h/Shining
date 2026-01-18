@@ -35,7 +35,7 @@ interface BaseChatProps {
   onSelectDecision?: (optionId: string, decision: DecisionPoint) => void;
 }
 
-// Outcome-focused example prompts for Meldon - The Intelligence Layer
+// Outcome-focused example prompts for Gence - The Intelligence Layer
 const EXAMPLE_PROMPTS = [
   { text: 'Help me understand what architecture best achieves scalability for my use case', icon: 'i-ph:graph-duotone' },
   { text: 'Build a dashboard that gives me insights into user behavior patterns', icon: 'i-ph:chart-line-up-duotone' },
@@ -116,7 +116,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       transition={{ duration: 0.4, ease: 'easeOut' }}
                     >
                       <h1 className="text-5xl text-center font-bold text-bolt-elements-textPrimary mb-2">
-                        Meldon
+                        Gence
                       </h1>
                       <p className="mb-4 text-center text-bolt-elements-textSecondary">
                         The Intelligence Layer

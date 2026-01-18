@@ -18,7 +18,7 @@ export const LLM_PROVIDERS: LLMProvider[] = [
         name: 'Anthropic Claude',
         model: 'claude-sonnet-4-20250514',
         priority: 1,
-        enabled: true,
+        enabled: false, // Temporarily disabled due to billing issue - will use Google/OpenAI
         maxRetries: 1,
     },
     {

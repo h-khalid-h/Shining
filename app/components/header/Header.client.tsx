@@ -29,7 +29,7 @@ export function HeaderClient() {
             <div className="flex items-center gap-4">
                 {isClient && <ProjectSwitcher />}
                 <a href="/" className="text-2xl font-semibold text-blue-600">
-                    Meldon
+                    Gence
                 </a>
                 {isClient && <ChatDescription />}
             </div>
