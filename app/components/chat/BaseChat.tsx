@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { Message } from '~/types/message';
 import React, { type RefCallback, lazy, Suspense, useEffect } from 'react';
 import { classNames } from '~/utils/classNames';
 import { Messages } from './Messages.client';
@@ -18,7 +18,7 @@ const Menu = lazy(() => import('~/components/sidebar/Menu.client').then(m => ({ 
 const Workbench = lazy(() => import('~/components/workbench/Workbench.client').then(m => ({ default: m.Workbench })));
 
 interface BaseChatProps {
-  textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
   showChat?: boolean;

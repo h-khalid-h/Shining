@@ -9,7 +9,7 @@
  * - Chat history persistence
  */
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import type { Message } from 'ai';
+import type { Message } from '~/types/message';
 import { useStore } from '@nanostores/react';
 import { useAuth, useClerk } from '@clerk/react-router';
 import { BaseChat } from './BaseChat';

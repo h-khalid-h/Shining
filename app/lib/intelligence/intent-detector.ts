@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { Message } from '~/types/message';
 
 /**
  * Detect user intent from their message to determine conversation approach

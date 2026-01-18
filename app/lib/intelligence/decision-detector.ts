@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { Message } from '~/types/message';
 import type { DecisionPoint } from '~/components/intelligence/DecisionCards';
 
 /**

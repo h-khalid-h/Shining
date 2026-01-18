@@ -1,4 +1,4 @@
-import { type Message } from 'ai';
+import { type Message } from '~/types/message';
 
 export function exportChatToMarkdown(messages: Message[], chatDescription?: string): string {
     const timestamp = new Date().toLocaleString();
