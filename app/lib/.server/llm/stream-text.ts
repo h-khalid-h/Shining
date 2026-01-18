@@ -37,6 +37,7 @@ export async function streamText(messages: Messages, env: Env, options?: Streami
         content: m.content,
       }));
 
+      // @ts-expect-error - AI SDK v6 type compatibility
       return _streamText({
         model,
         system: getSystemPrompt(),

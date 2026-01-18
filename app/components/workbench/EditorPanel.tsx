@@ -205,6 +205,7 @@ export const EditorPanel = memo(
           </PanelGroup>
         </Panel>
         <PanelResizeHandle />
+        {/* @ts-expect-error - react-resizable-panels v4 API compatibility */}
         <Panel
           panelRef={terminalPanelRef}
           defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}

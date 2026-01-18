@@ -61,14 +61,15 @@ export const Markdown = memo(({ children, html = false, limitedMarkdown = false 
   }, []);
 
   return (
-    <ReactMarkdown
-      allowedElements={allowedHTMLElements}
-      className={styles.MarkdownContent}
-      components={components}
-      remarkPlugins={remarkPlugins(limitedMarkdown)}
-      rehypePlugins={rehypePlugins(html)}
+    {/* @ts-expect-error - react-markdown v10 className prop compatibility */ }
+    < ReactMarkdown
+      allowedElements = { allowedHTMLElements }
+  className = { styles.MarkdownContent }
+  components = { components }
+  remarkPlugins = { remarkPlugins(limitedMarkdown) }
+  rehypePlugins = { rehypePlugins(html) }
     >
-      {children}
-    </ReactMarkdown>
+    { children }
+    </ReactMarkdown >
   );
 });
