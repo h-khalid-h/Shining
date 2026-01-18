@@ -64,9 +64,9 @@ function getApiKeyForProvider(providerId: string, env: Env): string | undefined 
         case 'anthropic':
             return env.ANTHROPIC_API_KEY;
         case 'google':
-            return env.GOOGLE_API_KEY;
+            return (env as any).GOOGLE_API_KEY;
         case 'openai':
-            return env.OPENAI_API_KEY;
+            return (env as any).OPENAI_API_KEY;
         default:
             return undefined;
     }

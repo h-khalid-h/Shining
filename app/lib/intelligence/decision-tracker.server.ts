@@ -66,9 +66,9 @@ export async function trackDecisionServer(
                     optionId: `option_${option.id}_${Date.now()}`,
                     label: option.label,
                     description: option.description || null,
-                    pros: option.pros || [],
-                    cons: option.cons || [],
-                    effort: option.effort || 'medium',
+                    pros: ('pros' in option) ? option.pros || [] : [],
+                    cons: ('cons' in option) ? option.cons || [] : [],
+                    effort: ('effort' in option) ? option.effort || 'medium' : 'medium',
                 }
             );
         }

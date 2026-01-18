@@ -52,14 +52,7 @@ export function useKineticTracker(): UseKineticTrackerReturn {
             return;
         }
 
-        const kinetic = {
-            type: 'digital', // All tracked events are digital actions
-            description: event.description,
-            status: 'complete', // Tracked events are already complete
-            alignmentScore: calculateAlignmentScore(event, graph.north.description),
-            effort: estimateEffort(event),
-            metadata: event.metadata,
-        };
+        const { type, description, metadata } = event;
 
         try {
             const response = await fetch('/api/graph/kinetics', {
@@ -68,17 +61,18 @@ export function useKineticTracker(): UseKineticTrackerReturn {
                 body: JSON.stringify({
                     northId: graph.north.id,
                     userId,
-                    kinetic,
+                    type: 'digital',
+                    description,
+                    status: 'complete',
+                    alignmentScore: calculateAlignmentScore(event, graph.north.statement),
+                    effort: estimateEffort(event),
+                    metadata,
                 }),
             });
 
             if (!response.ok) {
                 throw new Error(`Failed to track kinetic: ${response.statusText}`);
             }
-
-            // Optionally trigger signal recalculation after every N kinetics
-            // This is commented out for now to avoid performance issues
-            // await triggerSignalRecalculation(graph.north.id);
         } catch (error) {
             // Log error but don't throw to avoid interrupting user workflow
             console.error('Failed to track kinetic:', error);

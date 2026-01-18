@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
-import type { North } from '~/lib/stores/graph';
+import type { NorthState } from '~/lib/stores/graph';
 
 export interface ContextRibbonProps {
-    north: North | null;
+    north: NorthState | null;
     drift: number;
     confidence?: number;
     onClickUnderstanding: () => void;
@@ -70,7 +70,7 @@ export function ContextRibbon({
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-bolt-elements-textTertiary">Understanding:</span>
                                 <span className="text-sm font-medium text-bolt-elements-textPrimary truncate max-w-md group-hover:text-blue-500 transition-colors">
-                                    {north.description}
+                                    {north.statement}
                                 </span>
                             </div>
                             <motion.div

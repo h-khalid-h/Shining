@@ -46,9 +46,9 @@ export function StatsDashboard({ northId, className }: StatsDashboardProps) {
                 ]);
 
                 const [kineticsData, signalData, decisionsData] = await Promise.all([
-                    kineticsRes.json(),
-                    signalRes.json(),
-                    decisionsRes.json(),
+                    kineticsRes.json() as Promise<{ data?: { stats?: any } }>,
+                    signalRes.json() as Promise<{ data?: { signal?: any } }>,
+                    decisionsRes.json() as Promise<{ data?: { decisions?: any[] } }>,
                 ]);
 
                 const kineticStats = kineticsData.data?.stats || {};

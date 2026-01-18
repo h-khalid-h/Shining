@@ -19,6 +19,7 @@ const DriftNudge = lazy(() => import('~/components/intelligence/DriftNudge').the
 const NorthEditor = lazy(() => import('~/components/intelligence/NorthEditor').then(m => ({ default: m.NorthEditor })));
 const GraphVisualization = lazy(() => import('~/components/intelligence/GraphVisualization').then(m => ({ default: m.GraphVisualization })));
 const DriftTimelineModal = lazy(() => import('~/components/intelligence/DriftTimelineModal').then(m => ({ default: m.DriftTimelineModal })));
+const DecisionHistoryModal = lazy(() => import('~/components/intelligence/DecisionHistoryModal').then(m => ({ default: m.DecisionHistoryModal })));
 const IntelligenceDashboard = lazy(() => import('~/components/intelligence/IntelligenceDashboard').then(m => ({ default: m.IntelligenceDashboard })));
 
 export interface IntelligenceLayerProps {
@@ -38,19 +39,20 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
     const [intelligenceError, setIntelligenceError] = useState(false);
     const [showNorthEditor, setShowNorthEditor] = useState(false);
     const [showDriftTimeline, setShowDriftTimeline] = useState(false);
+    const [showDecisionHistory, setShowDecisionHistory] = useState(false);
     const [showDashboard, setShowDashboard] = useState(false);
 
     // Auto-generate vectors after Understanding is confirmed
     useEffect(() => {
         try {
-            if (understanding.confirmed && graph.north && graph.bounds.length > 0 && !vectors.vectors.length) {
+            if (graph.north && graph.bounds.length > 0 && !vectors.vectors.length) {
                 vectors.generateVectors(graph.north, graph.bounds);
             }
         } catch (error) {
             console.error('Error generating vectors:', error);
             setIntelligenceError(true);
         }
-    }, [understanding.confirmed, graph.north, graph.bounds]);
+    }, [graph.north, graph.bounds]);
 
     // Debounce signal to reduce drift detection calculations
     const debouncedSignal = useDebounce(graph.signal, 300);
@@ -66,25 +68,10 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
         }
     }, [debouncedSignal]);
 
-    const showDrift = driftAlert && shouldShowDriftAlert(lastDriftAlert, graph.signal.drift);
+    const showDrift = driftAlert && graph.signal && shouldShowDriftAlert(lastDriftAlert, graph.signal.drift);
 
-    // Track drift history - save snapshot when drift changes
-    useEffect(() => {
-        if (graph.north && graph.signal && graph.signal.drift !== undefined && messageCount > 0 && userId) {
-            saveSnapshot({
-                conversationId: userId,
-                messageIndex: messageCount,
-                driftScore: graph.signal.drift,
-                driftType: driftAlert?.type || 'none',
-                contextSnapshot: {
-                    north: graph.north,
-                    bounds: graph.bounds,
-                    signal: graph.signal,
-                },
-                timestamp: Date.now(),
-            }).catch(err => console.error('Failed to save drift snapshot:', err));
-        }
-    }, [graph.signal?.drift, messageCount]);
+    // Track drift history - handled by useDriftHistory hook
+    // The hook automatically saves snapshots when drift changes
 
     // Handle North update
     const handleUpdateNorth = async (updatedDescription: string) => {
@@ -112,13 +99,15 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
             console.log('✓ North updated successfully:', data);
 
             // Update local graph store
-            graphStore.set({
-                ...graph,
-                north: {
-                    ...graph.north,
-                    description: updatedDescription,
-                },
-            });
+            if (graph.north) {
+                graphStore.set({
+                    ...graph,
+                    north: {
+                        ...graph.north,
+                        statement: updatedDescription,
+                    },
+                });
+            }
         } catch (error) {
             console.error('Error updating North:', error);
             throw error;
@@ -129,6 +118,7 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
     useIntelligenceShortcuts({
         toggleDashboard: () => setShowDashboard(prev => !prev),
         toggleGraph: () => setShowGraph(prev => !prev),
+        toggleDecisionHistory: () => setShowDecisionHistory(prev => !prev),
     });
 
     return (
@@ -157,8 +147,30 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                 </div>
             )}
 
+            {/* Drift Alert */}
+            {showDrift && driftAlert && graph.signal && (
+                <Suspense fallback={null}>
+                    <DriftNudge
+                        alert={driftAlert}
+                        onAcknowledge={() => setLastDriftAlert(graph.signal?.drift || 0)}
+                        onAdjustGoal={() => {
+                            setShowNorthEditor(true);
+                            setLastDriftAlert(graph.signal?.drift || 0);
+                        }}
+                        onCreateVector={() => {
+                            // Trigger vector regeneration
+                            if (graph.north && graph.bounds.length > 0) {
+                                vectors.generateVectors(graph.north, graph.bounds);
+                            }
+                            setLastDriftAlert(graph.signal?.drift || 0);
+                        }}
+                        onViewHistory={() => setShowDriftTimeline(true)}
+                    />
+                </Suspense>
+            )}
+
             {/* Context Ribbon - Always visible when understanding exists */}
-            {graph.north && (
+            {graph.north && graph.signal && (
                 <ContextRibbon
                     north={graph.north}
                     drift={graph.signal.drift}
@@ -170,32 +182,23 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
             )}
 
             {/* Understanding Card - Expandable from Context Ribbon */}
-            {understanding.shouldShow && isUnderstandingExpanded && (
-                understanding.loading ? (
-                    <div className="fixed top-16 right-6 bg-bolt-elements-background-depth-1 p-4 rounded-lg shadow-lg border border-bolt-elements-borderColor z-40">
-                        <IntelligenceLoadingState
-                            stage="understanding"
-                            customMessage="Analyzing conversation context..."
-                            size="sm"
+            {understanding.shouldShow && isUnderstandingExpanded && understanding.north && (
+                <div className="fixed top-16 right-6 z-40">
+                    <Suspense fallback={<LoadingSpinner size="sm" />}>
+                        <Understanding
+                            north={{ statement: understanding.north.statement, confidence: understanding.north.confidence }}
+                            bounds={understanding.bounds}
+                            onConfirm={() => {
+                                understanding.onConfirm();
+                                setIsUnderstandingExpanded(false);
+                            }}
+                            onDismiss={() => setIsUnderstandingExpanded(false)}
+                            visible={true}
                         />
-                    </div>
-                ) : (
-                    <div className="fixed top-16 right-6 z-40">
-                        <Suspense fallback={<LoadingSpinner size="sm" />}>
-                            <Understanding
-                                north={understanding.north}
-                                bounds={understanding.bounds}
-                                onConfirm={() => {
-                                    understanding.onConfirm();
-                                    setIsUnderstandingExpanded(false);
-                                }}
-                                onDismiss={() => setIsUnderstandingExpanded(false)}
-                                visible={true}
-                            />
-                        </Suspense>
-                    </div>
-                )
+                    </Suspense>
+                </div>
             )}
+
 
             {/* Vector Options - shows after North confirmed */}
             {vectors.loading ? (
@@ -216,27 +219,11 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                 </Suspense>
             )}
 
-            {/* Drift Nudge - shows when drifting */}
-            {showDrift && driftAlert && (
-                <Suspense fallback={null}>
-                    <DriftNudge
-                        alert={driftAlert}
-                        onAcknowledge={() => setLastDriftAlert(Date.now())}
-                        onAdjustGoal={() => setShowNorthEditor(true)}
-                        onCreateVector={() => {
-                            if (graph.north && graph.bounds.length > 0) {
-                                vectors.generateVectors(graph.north, graph.bounds);
-                            }
-                        }}
-                    />
-                </Suspense>
-            )}
-
             {/* North Editor Modal */}
             {graph.north && (
                 <Suspense fallback={null}>
                     <NorthEditor
-                        north={graph.north}
+                        north={{ id: graph.north.id, description: graph.north.statement, confidence: graph.north.confidence }}
                         onSave={handleUpdateNorth}
                         onClose={() => setShowNorthEditor(false)}
                         visible={showNorthEditor}
@@ -279,6 +266,22 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                     >
                         🗺️ {showGraph ? 'Hide' : 'View'} Decision Map
                     </button>
+                    <button
+                        onClick={() => setShowDecisionHistory(!showDecisionHistory)}
+                        style={{
+                            padding: '12px 20px',
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        }}
+                    >
+                        📝 {showDecisionHistory ? 'Hide' : 'View'} Decisions
+                    </button>
                 </div>
             )}
 
@@ -296,7 +299,7 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                                     id: graph.north.id || 'north-1',
                                     type: 'north',
                                     label: 'Goal',
-                                    description: graph.north.description,
+                                    description: graph.north.statement,
                                     confidence: graph.north.confidence,
                                     createdAt: new Date().toISOString(),
                                     x: 400,
@@ -305,8 +308,8 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                                 ...graph.bounds.map((bound, i) => ({
                                     id: `bound-${i}`,
                                     type: 'bound' as const,
-                                    label: bound.type,
-                                    description: bound.description,
+                                    label: bound.metric,
+                                    description: bound.value,
                                     createdAt: new Date().toISOString(),
                                     x: 200 + i * 150,
                                     y: 350,
@@ -330,6 +333,15 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                     conversationId={userId}
                     onClose={() => setShowDriftTimeline(false)}
                     visible={showDriftTimeline}
+                />
+            </Suspense>
+
+            {/* Decision History Modal */}
+            <Suspense fallback={null}>
+                <DecisionHistoryModal
+                    northId={graph.north?.id || null}
+                    onClose={() => setShowDecisionHistory(false)}
+                    visible={showDecisionHistory}
                 />
             </Suspense>
 

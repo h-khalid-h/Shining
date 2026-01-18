@@ -152,7 +152,7 @@ export function Menu() {
             {list.length === 0 && <div className="pl-2 text-bolt-elements-textTertiary">No previous conversations</div>}
             <DialogRoot open={dialogContent !== null}>
               {binDates(list.filter(item =>
-                !searchQuery || item.description.toLowerCase().includes(searchQuery.toLowerCase())
+                !searchQuery || item.description?.toLowerCase().includes(searchQuery.toLowerCase())
               )).map(({ category, items }) => (
                 <div key={category} className="mt-4 first:mt-0 space-y-1">
                   <div className="text-bolt-elements-textTertiary sticky top-0 z-1 bg-bolt-elements-background-depth-2 pl-2 pt-2 pb-1">

@@ -181,10 +181,10 @@ function PatternCard({ pattern }: { pattern: any }) {
         <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`p-3 rounded-lg border ${severityStyles[pattern.severity]} text-sm`}
+            className={`p-3 rounded-lg border ${severityStyles[pattern.severity as keyof typeof severityStyles] || severityStyles.info} text-sm`}
         >
             <div className="flex items-start gap-2">
-                <div className={`${icons[pattern.type]} text-lg flex-shrink-0 mt-0.5`} />
+                <div className={`${icons[pattern.type as keyof typeof icons] || icons.stability} text-lg flex-shrink-0 mt-0.5`} />
                 <div>
                     <p className="font-medium">{pattern.message}</p>
                     <p className="text-xs opacity-75 mt-1">

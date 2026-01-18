@@ -38,7 +38,7 @@ export function IntelligenceDashboard({ userId, className }: IntelligenceDashboa
             try {
                 // First, get the active North ID
                 const activeRes = await fetch('/api/graph/active');
-                const activeData = await activeRes.json();
+                const activeData = await activeRes.json() as { northId?: string };
 
                 if (!activeData.northId) {
                     console.log('No active North found');
@@ -48,7 +48,7 @@ export function IntelligenceDashboard({ userId, className }: IntelligenceDashboa
 
                 // Then, fetch the full graph data for that North
                 const graphRes = await fetch(`/api/graph/${activeData.northId}`);
-                const graphData = await graphRes.json();
+                const graphData = await graphRes.json() as { north?: any; bounds?: any[]; signal?: any };
 
                 if (graphData.north) {
                     // Update the graphStore

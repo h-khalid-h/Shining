@@ -24,7 +24,6 @@ export async function action({ context, request }: Route.ActionArgs) {
                     model,
                     system: 'You are an intent prediction assistant for Gence, an intelligent development partner.',
                     prompt: predictionPrompt,
-                    maxTokens: 500,
                 });
             },
             env

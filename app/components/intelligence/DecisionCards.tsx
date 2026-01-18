@@ -76,9 +76,10 @@ export function DecisionCards({ decision, onSelectOption, userId }: DecisionCard
                 }),
             })
                 .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        setDecisionId(data.data.decisionId);
+                .then((data: any) => {
+                    const typedData = data as { success: boolean; data?: { decisionId?: string } };
+                    if (typedData.success && typedData.data) {
+                        setDecisionId(typedData.data.decisionId || null);
                     }
                 })
                 .catch(err => console.error('Failed to store decision:', err))

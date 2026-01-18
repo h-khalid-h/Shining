@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 export interface IntelligenceShortcutHandlers {
     toggleDashboard: () => void;
     toggleGraph: () => void;
+    toggleDecisionHistory?: () => void;
 }
 
 /**
@@ -41,9 +42,16 @@ export function useIntelligenceShortcuts(handlers: IntelligenceShortcutHandlers)
                 handlers.toggleGraph();
                 return;
             }
+
+            // Cmd/Ctrl + H = Toggle Decision History
+            if ((event.key === 'h' || event.key === 'H') && handlers.toggleDecisionHistory) {
+                event.preventDefault();
+                handlers.toggleDecisionHistory();
+                return;
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handlers.toggleDashboard, handlers.toggleGraph]);
+    }, [handlers.toggleDashboard, handlers.toggleGraph, handlers.toggleDecisionHistory]);
 }

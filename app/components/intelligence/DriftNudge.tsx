@@ -12,6 +12,7 @@ export interface DriftNudgeProps {
     onAcknowledge: () => void;
     onAdjustGoal: () => void;
     onCreateVector: () => void;
+    onViewHistory?: () => void;
 }
 
 export function DriftNudge({
@@ -19,6 +20,7 @@ export function DriftNudge({
     onAcknowledge,
     onAdjustGoal,
     onCreateVector,
+    onViewHistory,
 }: DriftNudgeProps) {
     const severityColors = {
         low: '#10b981',
@@ -73,6 +75,11 @@ export function DriftNudge({
                 <button className={styles.secondaryButton} onClick={onAcknowledge}>
                     Got it
                 </button>
+                {onViewHistory && (
+                    <button className={styles.secondaryButton} onClick={onViewHistory}>
+                        📊 View History
+                    </button>
+                )}
                 <button className={styles.secondaryButton} onClick={onCreateVector}>
                     Create new plan
                 </button>

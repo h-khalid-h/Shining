@@ -92,8 +92,8 @@ export function getShortcutByKey(key: string, meta?: boolean, ctrl?: boolean, sh
     (shortcut) =>
       shortcut.key === key &&
       shortcut.meta === meta &&
-      (shortcut.ctrl ?? false) === (ctrl ?? false) &&
-      (shortcut.shift ?? false) === (shift ?? false),
+      ((shortcut as any).ctrl ?? false) === (ctrl ?? false) &&
+      ((shortcut as any).shift ?? false) === (shift ?? false),
   );
 }
 

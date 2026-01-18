@@ -34,7 +34,7 @@ export function useVectors(userId: string | null) {
                 throw new Error('Failed to generate vectors');
             }
 
-            const data = await response.json();
+            const data = await response.json() as { vectors: Vector[] };
             setVectors(data.vectors);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
@@ -69,7 +69,7 @@ export function useVectors(userId: string | null) {
                     confidence: vector.confidence,
                     metadata: {
                         selectedAt: new Date().toISOString(),
-                        vectorType: vector.type || 'strategic',
+                        vectorType: 'strategic',
                     },
                 }),
             });

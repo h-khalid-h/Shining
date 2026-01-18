@@ -23,7 +23,7 @@ interface BaseChatProps {
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
   showChat?: boolean;
   isStreaming?: boolean;
-  messages?: Message[];
+  messages: Array<Message & { id: string }>;
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;

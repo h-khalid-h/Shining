@@ -39,8 +39,8 @@ async function enhancerAction({ context, request }: Route.ActionArgs) {
       env,
     );
 
-    // v6 API: Use toDataStreamResponse directly
-    return result.toDataStreamResponse();
+    // v6 API: Use toTextStreamResponse
+    return result.toTextStreamResponse();
   } catch (error) {
     logger.error('Failed to enhance prompt:', error);
 

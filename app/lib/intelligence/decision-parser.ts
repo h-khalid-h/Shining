@@ -70,7 +70,7 @@ export function detectOptionsInMessage(content: string): DecisionPoint | null {
                 currentOption.effort = effortMatch[1] as 'low' | 'medium' | 'high';
             } else if (descMatch) {
                 currentOption.description = descMatch[1];
-            } else if (line.startsWith('- ') && currentOption.pros.length === 0 && currentOption.cons.length === 0) {
+            } else if (line.startsWith('- ') && (currentOption.pros?.length === 0) && (currentOption.cons?.length === 0)) {
                 // First bullet after label is likely description
                 if (!currentOption.description) {
                     currentOption.description = line.substring(2).trim();

@@ -58,7 +58,6 @@ Respond ONLY with valid JSON (no markdown, no code fences):
                 return await generateText({
                     model,
                     prompt,
-                    maxTokens: 300,
                     temperature: 0.3, // Lower temperature for more consistent scoring
                 });
             },

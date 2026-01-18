@@ -31,9 +31,9 @@ export function DecisionHistory({ northId, className }: DecisionHistoryProps) {
         const fetchDecisions = async () => {
             try {
                 const response = await fetch(`/api/graph/decisions/${northId}`);
-                const data = await response.json();
+                const data = await response.json() as { success: boolean; data?: { decisions?: Decision[] } };
 
-                if (data.success) {
+                if (data.success && data.data) {
                     setDecisions(data.data.decisions || []);
                 } else {
                     setError('Failed to load decisions');
@@ -50,31 +50,6 @@ export function DecisionHistory({ northId, className }: DecisionHistoryProps) {
             fetchDecisions();
         }
     }, [northId]);
-
-    const handleExportPDF = async () => {
-        if (!graph.north || decisions.length === 0) return;
-
-        setExporting(true);
-        try {
-            const summary: ProjectSummary = {
-                northGoal: graph.north.description,
-                totalDecisions: decisions.length,
-                dateRange: {
-                    start: decisions[decisions.length - 1]?.createdAt || new Date().toISOString(),
-                    end: decisions[0]?.createdAt || new Date().toISOString(),
-                },
-            };
-
-            const pdf = await exportDecisionsToPDF(decisions, summary);
-            const filename = generatePDFFilename(graph.north.description.substring(0, 30));
-            pdf.save(filename);
-        } catch (error) {
-            console.error('PDF export failed:', error);
-            setError('Failed to export PDF');
-        } finally {
-            setExporting(false);
-        }
-    };
 
     if (loading) {
         return (

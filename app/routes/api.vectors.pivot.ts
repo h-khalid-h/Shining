@@ -23,9 +23,18 @@ interface PivotRequest {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
+    let requestBody: PivotRequest | null = null;
     try {
-        const body: PivotRequest = await request.json();
-        const { vectorId, northId, userId, approach, confidence, metadata } = body;
+        requestBody = await request.json();
+
+        if (!requestBody) {
+            return Response.json(
+                { error: 'Invalid request body' },
+                { status: 400 }
+            );
+        }
+
+        const { vectorId, northId, userId, approach, confidence, metadata } = requestBody;
 
         // Validate required fields
         if (!vectorId || !northId || !userId || !approach) {
@@ -87,8 +96,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         }
     } catch (error) {
         graphLogger.error('Pivot storage failed', error, {
-            vectorId: body.vectorId,
-            northId: body.northId,
+            vectorId: requestBody?.vectorId,
+            northId: requestBody?.northId,
         });
 
         return createErrorResponse(

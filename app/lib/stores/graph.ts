@@ -33,6 +33,9 @@ export interface SignalState {
     lastUpdate: string;
 }
 
+// Type alias for backwards compatibility
+export type Signal = SignalState;
+
 export interface GraphState {
     north: NorthState | null;
     bounds: BoundState[];

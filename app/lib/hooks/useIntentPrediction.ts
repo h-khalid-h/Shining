@@ -48,7 +48,7 @@ export function useIntentPrediction(recentMessages: string[] = []) {
                 throw new Error('Failed to predict intent');
             }
 
-            const data = await response.json();
+            const data = await response.json() as IntentPrediction;
             setPrediction(data);
         } catch (error) {
             console.error('Intent prediction error:', error);

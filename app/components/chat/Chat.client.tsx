@@ -352,8 +352,8 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
     return (
         <BaseChat
             textareaRef={textareaRef}
-            messageRef={messageRef}
-            scrollRef={scrollRef}
+            messageRef={(el) => { if (el) (messageRef as any).current = el; }}
+            scrollRef={(el) => { if (el) (scrollRef as any).current = el; }}
             showChat={true}
             isStreaming={isLoading}
             messages={messages.map((msg, idx) => ({

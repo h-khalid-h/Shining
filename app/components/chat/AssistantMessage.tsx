@@ -29,7 +29,7 @@ export const AssistantMessage = memo(({ content, isStreaming = false, isFirst = 
       {/* Show intent alignment if we have understanding */}
       {graph.north && intentStage && (
         <IntentAlignment
-          intent={graph.north.description}
+          intent={graph.north.statement}
           coherence={coherence}
           stage={intentStage as 'understanding' | 'generating' | 'complete'}
         />

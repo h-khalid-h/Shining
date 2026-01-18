@@ -3,7 +3,7 @@
  * Detects when user is drifting from their North (goal)
  */
 
-import type { SignalState } from './signals';
+import type { Signal } from '~/lib/stores/graph';
 
 export interface DriftAlert {
     severity: 'low' | 'medium' | 'high';
@@ -16,7 +16,7 @@ export interface DriftAlert {
 /**
  * Detect drift and generate appropriate alert
  */
-export function detectDrift(signal: SignalState | null | undefined): DriftAlert | null {
+export function detectDrift(signal: Signal | null | undefined): DriftAlert | null {
     // SSR safety check
     if (typeof window === 'undefined' || !signal) {
         return null;

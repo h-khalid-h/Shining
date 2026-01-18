@@ -41,7 +41,6 @@ export async function streamText(messages: Messages, env: Env, options?: Streami
       return _streamText({
         model,
         system: getSystemPrompt(),
-        maxTokens: MAX_TOKENS,
         messages: coreMessages,
         ...options,
       });

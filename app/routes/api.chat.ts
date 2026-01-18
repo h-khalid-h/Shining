@@ -103,7 +103,7 @@ async function chatAction({ context, request }: Route.ActionArgs) {
     integration
       .processMessages(
         userId,
-        messages.map((m) => ({ role: m.role, content: m.content })),
+        messages.map((m: any) => ({ role: m.role, content: m.content })),
       )
       .then((result) => {
         const extractionTime = Date.now() - startTime;
@@ -111,8 +111,7 @@ async function chatAction({ context, request }: Route.ActionArgs) {
         // Log extraction for analysis
         logExtraction(
           userId,
-          messages,
-          messageCount,
+          messages as any,
           result,
           extractionTime,
         );
@@ -132,14 +131,14 @@ async function chatAction({ context, request }: Route.ActionArgs) {
               description: `Analyzed conversation context (${messageCount} messages)`,
               type: 'digital',
               status: 'complete',
-              alignmentScore: result.confidence || 80,
+              alignmentScore: (result as any).confidence || 80,
               effort: 2,
             }, env).catch(err => logger.warn('Failed to track extraction kinetic', err));
           }
         } else {
           logger.debug('Skipping extraction', {
             messageCount,
-            reason: result.reason || 'Not time yet',
+            reason: (result as any).reason || 'Not time yet',
           });
         }
       })
@@ -168,8 +167,8 @@ async function chatAction({ context, request }: Route.ActionArgs) {
           headers: { 'Content-Type': 'application/json' },
         })
           .then(res => res.json())
-          .then(async data => {
-            if (data.success && data.data.north) {
+          .then(async (data: any) => {
+            if (data.success && data.data && data.data.north) {
               const northId = data.data.north.id;
 
               // Track decision directly in Neo4j (bypasses auth)

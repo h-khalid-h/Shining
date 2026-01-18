@@ -184,7 +184,7 @@ export const EditorPanel = memo(
               {editorDocument && graph.north && (
                 <FileIntentHeader
                   fileName={selectedFile || ''}
-                  intent={graph.north.description}
+                  intent={graph.north.statement}
                   coherence={graph.signal?.drift ? Math.max(0, 100 - graph.signal.drift) : 85}
                 />
               )}

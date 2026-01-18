@@ -1,11 +1,12 @@
-import type { Signal, DriftAlert } from './drift-detector';
+import type { Signal } from '~/lib/stores/graph';
+import type { DriftAlert } from './drift-detector';
 
 export interface DriftSnapshot {
     id: string;
     conversationId: string;
     messageIndex: number;
     driftScore: number;
-    driftType: DriftAlert['type'] | 'none';
+    driftType: 'low' | 'medium' | 'high' | 'none';
     contextSnapshot: {
         north: any;
         bounds: any[];

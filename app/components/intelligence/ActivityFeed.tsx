@@ -43,9 +43,9 @@ export function ActivityFeed({
         const fetchKinetics = async () => {
             try {
                 const response = await fetch(`/api/graph/kinetics/${northId}`);
-                const data = await response.json();
+                const data = await response.json() as { success: boolean; data?: { kinetics?: Kinetic[] } };
 
-                if (data.success) {
+                if (data.success && data.data) {
                     setKinetics((data.data.kinetics || []).slice(0, maxItems));
                 }
             } catch (error) {
