@@ -30,7 +30,7 @@ export function DecisionHistory({ northId, className }: DecisionHistoryProps) {
     useEffect(() => {
         const fetchDecisions = async () => {
             try {
-                const response = await fetch(`/api/graph/decisions?northId=${northId}`);
+                const response = await fetch(`/api/graph/decisions/${northId}`);
                 const data = await response.json();
 
                 if (data.success) {

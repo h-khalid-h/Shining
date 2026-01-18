@@ -41,8 +41,8 @@ export function StatsDashboard({ northId, className }: StatsDashboardProps) {
             try {
                 const [kineticsRes, signalRes, decisionsRes] = await Promise.all([
                     fetch(`/api/graph/kinetics/${northId}`),
-                    fetch(`/api/graph/signal?northId=${northId}`),
-                    fetch(`/api/graph/decisions?northId=${northId}`),
+                    fetch(`/api/graph/${northId}/signal`),
+                    fetch(`/api/graph/decisions/${northId}`),
                 ]);
 
                 const [kineticsData, signalData, decisionsData] = await Promise.all([

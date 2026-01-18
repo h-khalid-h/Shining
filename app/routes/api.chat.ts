@@ -6,6 +6,9 @@ import { createScopedLogger } from '~/utils/logger';
 import { getOptionalAuth } from '~/lib/auth.server';
 import { IntegrationService } from '~/lib/intelligence/integration.server';
 import { shouldExtract, logExtraction } from '~/lib/intelligence/extraction-logger';
+import { trackKineticServer } from '~/lib/intelligence/kinetic-tracker.server';
+import { detectDecisionPoint } from '~/lib/intelligence/decision-detector';
+import { trackDecisionServer } from '~/lib/intelligence/decision-tracker.server';
 
 const logger = createScopedLogger('ChatAPI');
 
@@ -44,8 +47,10 @@ async function chatAction({ context, request }: Route.ActionArgs) {
     const hasGoalPattern = goalPatterns.some(pattern => pattern.test(firstMessage.trim()));
 
     if (hasGoalPattern) {
-      // Create North in background (don't await to avoid blocking chat)
-      fetch(new URL('/api/north/create', request.url).toString(), {
+      // Create North using dynamic route
+      const northId = `north-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      fetch(new URL(`/api/graph/${northId}`, request.url).toString(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -53,6 +58,23 @@ async function chatAction({ context, request }: Route.ActionArgs) {
           userId,
           confidence: 0.75,
         }),
+      }).then(res => {
+        if (res.ok) {
+          logger.info('North created successfully', { northId });
+
+          // Track North creation as a kinetic event
+          trackKineticServer({
+            northId,
+            userId,
+            description: 'Established project goal',
+            type: 'digital',
+            status: 'complete',
+            alignmentScore: 100, // Perfect alignment - this IS the north
+            effort: 1,
+          }, env).catch(err => logger.warn('Failed to track North creation kinetic', err));
+        } else {
+          logger.warn('North creation failed', { status: res.status });
+        }
       }).catch(err => {
         logger.warn('Background North creation failed', err);
       });
@@ -90,18 +112,36 @@ async function chatAction({ context, request }: Route.ActionArgs) {
         logExtraction(
           userId,
           messages,
-          result.extracted,
+          messageCount,
+          result,
           extractionTime,
         );
 
-        logger.info('Background extraction complete', {
-          userId,
-          messageCount,
-          confidence: result.extracted.overallConfidence,
-          graphUpdated: result.graphUpdated,
-          northId: result.northId,
-          extractionTimeMs: extractionTime,
-        });
+        if (result.extracted) {
+          logger.info('Background intelligence extraction successful', {
+            messageCount,
+            extractionTime,
+            result,
+          });
+
+          // Track understanding extraction as a kinetic event
+          if (result.northId) {
+            trackKineticServer({
+              northId: result.northId,
+              userId,
+              description: `Analyzed conversation context (${messageCount} messages)`,
+              type: 'digital',
+              status: 'complete',
+              alignmentScore: result.confidence || 80,
+              effort: 2,
+            }, env).catch(err => logger.warn('Failed to track extraction kinetic', err));
+          }
+        } else {
+          logger.debug('Skipping extraction', {
+            messageCount,
+            reason: result.reason || 'Not time yet',
+          });
+        }
       })
       .catch((error) => {
         logger.error('Background extraction failed', { userId, error: error.message });
@@ -111,6 +151,52 @@ async function chatAction({ context, request }: Route.ActionArgs) {
       });
   } else if (userId && !shouldRunExtraction) {
     logger.debug('Skipping extraction', { userId, messageCount, reason: 'not enough messages' });
+  }
+
+  // Detect if user message requires a decision (only if North exists)
+  if (userId && messageCount > 1) {
+    const userMessage = messages[messages.length - 1]?.content;
+
+    if (userMessage && messages[messages.length - 1]?.role === 'user') {
+      const decisionPoint = detectDecisionPoint(userMessage);
+
+      if (decisionPoint) {
+        logger.info('Decision point detected', { decisionPoint });
+
+        // Query for active North and create decision (don't await - background)
+        fetch(new URL('/api/graph/active', request.url).toString(), {
+          headers: { 'Content-Type': 'application/json' },
+        })
+          .then(res => res.json())
+          .then(async data => {
+            if (data.success && data.data.north) {
+              const northId = data.data.north.id;
+
+              // Track decision directly in Neo4j (bypasses auth)
+              const success = await trackDecisionServer(northId, userId, decisionPoint, env);
+
+              if (success) {
+                logger.info('Decision tracked successfully', { northId });
+
+                // Track as kinetic event
+                await trackKineticServer({
+                  northId,
+                  userId,
+                  description: `Decision required: ${decisionPoint.question}`,
+                  type: 'digital',
+                  status: 'pending',
+                  alignmentScore: 70,
+                  effort: 2,
+                  metadata: { decisionType: decisionPoint.type },
+                }, env);
+              }
+            }
+          })
+          .catch(err => {
+            logger.warn('Failed to track decision', err);
+          });
+      }
+    }
   }
 
   try {

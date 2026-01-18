@@ -35,9 +35,10 @@ export interface ChatProps {
     initialMessages?: Message[];
     storeMessageHistory?: (messages: Message[]) => void;
     onMessageCountChange?: (count: number) => void;
+    startWithPrompt?: string;
 }
 
-export function Chat({ initialMessages = [], storeMessageHistory, onMessageCountChange }: ChatProps) {
+export function Chat({ initialMessages = [], storeMessageHistory, onMessageCountChange, startWithPrompt }: ChatProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -56,7 +57,8 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
         messages.map(m => m.content).slice(-3)
     );
 
-    // Auto-configure Kinetic tracking when North exists and user is authenticated    useAutoKineticTracking();
+    // Auto-configure Kinetic tracking when North exists and user is authenticated    
+    useAutoKineticTracking();
 
     // useSnapScroll returns [messageRef, scrollRef] - auto-scrolls when messages change
     const [messageRef, scrollRef] = useSnapScroll([messages]);
@@ -116,29 +118,37 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
         }
     }, [debouncedInput, isLoading]);
 
-    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setInput(event.target.value);
-    }, []);
+    // Initialize with prompt if provided and no history
+    useEffect(() => {
+        if (startWithPrompt && messages.length === 0 && !isLoading) {
+            const initialMsg: Message = {
+                id: crypto.randomUUID(),
+                role: 'user',
+                content: startWithPrompt,
+                createdAt: new Date(),
+            };
+            setMessages([initialMsg]);
+        }
+    }, [startWithPrompt, messages.length, isLoading]);
 
-    const handleStop = useCallback(() => {
-        chatStore.setKey('aborted', true);
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
-        setIsLoading(false);
-    }, []);
+    // Auto-send if last message is from user and no response yet (e.g. from onboarding redirect)
+    useEffect(() => {
+        if (messages.length > 0 &&
+            messages[messages.length - 1].role === 'user' &&
+            !isLoading &&
+            userId) {
 
-    const handleApplySuggestion = useCallback((autoCompleteText: string) => {
-        setInput(autoCompleteText);
-        setShowSuggestions(false);
-        clearPrediction();
-        textareaRef.current?.focus();
-    }, []);
+            // Allow a small delay for hydration
+            const timer = setTimeout(() => {
+                const lastMsg = messages[messages.length - 1];
+                // Pop the message to prevent duplication when sendMessage re-adds it
+                setMessages(prev => prev.slice(0, -1));
+                sendMessage({ preventDefault: () => { } } as React.UIEvent, lastMsg.content);
+            }, 500);
 
-    const handleDismissSuggestions = useCallback(() => {
-        setShowSuggestions(false);
-        clearPrediction();
-    }, []);
-
+            return () => clearTimeout(timer);
+        }
+    }, [messages.length, isLoading, userId]);
 
 
     const sendMessage = useCallback(async (event: React.UIEvent, messageInput?: string) => {
@@ -285,7 +295,31 @@ export function Chat({ initialMessages = [], storeMessageHistory, onMessageCount
         } finally {
             setIsLoading(false);
         }
-    }, [input, messages, isLoading]);
+    }, [input, messages, isLoading, userId, clerk, isOnline, resetEnhancer]);
+
+    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(event.target.value);
+    }, []);
+
+    const handleStop = useCallback(() => {
+        chatStore.setKey('aborted', true);
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        setIsLoading(false);
+    }, []);
+
+    const handleApplySuggestion = useCallback((autoCompleteText: string) => {
+        setInput(autoCompleteText);
+        setShowSuggestions(false);
+        clearPrediction();
+        textareaRef.current?.focus();
+    }, []);
+
+    const handleDismissSuggestions = useCallback(() => {
+        setShowSuggestions(false);
+        clearPrediction();
+    }, []);
+
 
     const handleDecisionSelection = useCallback((optionId: string, decisionContext?: DecisionPoint) => {
         const decision = decisionContext || pendingDecision;

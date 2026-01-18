@@ -222,13 +222,20 @@ export async function loader({ params, context }: Route.LoaderArgs) {
             const result = await session.run(
                 `
                 MATCH (n:North {id: $northId})-[:HAS_KINETIC]->(k:Kinetic)
-                RETURN k
+                RETURN k, toString(k.createdAt) as createdAtString, toString(k.startedAt) as startedAtString
                 ORDER BY k.createdAt DESC
                 `,
                 { northId }
             );
 
-            const kinetics = result.records.map(record => record.get('k').properties);
+            const kinetics = result.records.map(record => {
+                const k = record.get('k').properties;
+                return {
+                    ...k,
+                    createdAt: record.get('createdAtString'),
+                    startedAt: record.get('startedAtString'),
+                };
+            });
 
             // Calculate stats
             const total = kinetics.length;

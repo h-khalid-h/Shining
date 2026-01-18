@@ -4,6 +4,7 @@ import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
 import { DecisionCards, type DecisionPoint } from '~/components/intelligence/DecisionCards';
+import { parseDecisionCard } from '~/lib/intelligence/decision-parser';
 
 interface MessagesProps {
   id?: string;
@@ -25,6 +26,12 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
           const isFirst = index === 0;
           const isLast = index === messages.length - 1;
 
+          // Only parse for decision cards if not streaming and not user message
+          let decision: DecisionPoint | null = null;
+          if (!isUserMessage && (!isStreaming || !isLast)) {
+            decision = parseDecisionCard(content);
+          }
+
           return (
             <div
               key={index}
@@ -43,16 +50,11 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
               <div className="grid grid-col-1 w-full">
                 {isUserMessage ? (
                   <UserMessage content={content} />
-                ) : content.startsWith('__DECISION_CARD__') ? (
-                  (() => {
-                    const decision = JSON.parse(content.replace('__DECISION_CARD__', '')) as DecisionPoint;
-                    return (
-                      <DecisionCards
-                        decision={decision}
-                        onSelectOption={(optionId) => props.onSelectDecision?.(optionId, decision)}
-                      />
-                    );
-                  })()
+                ) : decision ? (
+                  <DecisionCards
+                    decision={decision}
+                    onSelectOption={(optionId) => props.onSelectDecision?.(optionId, decision!)}
+                  />
                 ) : (
                   <AssistantMessage
                     content={content}

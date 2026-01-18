@@ -22,6 +22,15 @@ type Pages = {
   "/test": {
     params: {};
   };
+  "/login": {
+    params: {};
+  };
+  "/sign-up": {
+    params: {};
+  };
+  "/onboarding": {
+    params: {};
+  };
   "/api/chat": {
     params: {};
   };
@@ -32,6 +41,22 @@ type Pages = {
     params: {};
   };
   "/api/graph/active": {
+    params: {};
+  };
+  "/api/graph/kinetics/:northId": {
+    params: {
+      "northId": string;
+    };
+  };
+  "/api/graph/decisions/:northId": {
+    params: {
+      "northId": string;
+    };
+  };
+  "/api/graph/bounds": {
+    params: {};
+  };
+  "/api/graph/signal": {
     params: {};
   };
   "/api/graph/:northId": {
@@ -49,7 +74,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/chat/:id" | "/test" | "/api/chat" | "/api/vectors/generate" | "/api/enhancer" | "/api/graph/active" | "/api/graph/:northId" | "/api/graph/:northId/signal";
+    page: "/" | "/chat/:id" | "/test" | "/login" | "/sign-up" | "/onboarding" | "/api/chat" | "/api/vectors/generate" | "/api/enhancer" | "/api/graph/active" | "/api/graph/kinetics/:northId" | "/api/graph/decisions/:northId" | "/api/graph/bounds" | "/api/graph/signal" | "/api/graph/:northId" | "/api/graph/:northId/signal";
   };
   "routes/_index.tsx": {
     id: "routes/_index";
@@ -62,6 +87,18 @@ type RouteFiles = {
   "routes/test.tsx": {
     id: "routes/test";
     page: "/test";
+  };
+  "routes/login.tsx": {
+    id: "routes/login";
+    page: "/login";
+  };
+  "routes/sign-up.tsx": {
+    id: "routes/sign-up";
+    page: "/sign-up";
+  };
+  "routes/onboarding.tsx": {
+    id: "routes/onboarding";
+    page: "/onboarding";
   };
   "routes/api.chat.ts": {
     id: "routes/api.chat";
@@ -79,6 +116,22 @@ type RouteFiles = {
     id: "routes/api.graph.active";
     page: "/api/graph/active";
   };
+  "routes/api.graph.kinetics.ts": {
+    id: "routes/api.graph.kinetics";
+    page: "/api/graph/kinetics/:northId";
+  };
+  "routes/api.graph.decisions.ts": {
+    id: "routes/api.graph.decisions";
+    page: "/api/graph/decisions/:northId";
+  };
+  "routes/api.graph.bounds.ts": {
+    id: "routes/api.graph.bounds";
+    page: "/api/graph/bounds";
+  };
+  "routes/api.graph.signal.ts": {
+    id: "routes/api.graph.signal";
+    page: "/api/graph/signal";
+  };
   "routes/api.graph.$northId.ts": {
     id: "routes/api.graph.$northId";
     page: "/api/graph/:northId";
@@ -94,10 +147,17 @@ type RouteModules = {
   "routes/_index": typeof import("./app/routes/_index.tsx");
   "routes/chat.$id": typeof import("./app/routes/chat.$id.tsx");
   "routes/test": typeof import("./app/routes/test.tsx");
+  "routes/login": typeof import("./app/routes/login.tsx");
+  "routes/sign-up": typeof import("./app/routes/sign-up.tsx");
+  "routes/onboarding": typeof import("./app/routes/onboarding.tsx");
   "routes/api.chat": typeof import("./app/routes/api.chat.ts");
   "routes/api.vectors.generate": typeof import("./app/routes/api.vectors.generate.ts");
   "routes/api.enhancer": typeof import("./app/routes/api.enhancer.ts");
   "routes/api.graph.active": typeof import("./app/routes/api.graph.active.ts");
+  "routes/api.graph.kinetics": typeof import("./app/routes/api.graph.kinetics.ts");
+  "routes/api.graph.decisions": typeof import("./app/routes/api.graph.decisions.ts");
+  "routes/api.graph.bounds": typeof import("./app/routes/api.graph.bounds.ts");
+  "routes/api.graph.signal": typeof import("./app/routes/api.graph.signal.ts");
   "routes/api.graph.$northId": typeof import("./app/routes/api.graph.$northId.ts");
   "routes/api.graph.$northId.signal": typeof import("./app/routes/api.graph.$northId.signal.ts");
 };

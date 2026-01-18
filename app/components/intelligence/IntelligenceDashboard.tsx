@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { graphStore } from '~/lib/stores/graph';
 import { DecisionHistory } from '~/components/intelligence/DecisionHistory';
@@ -25,6 +25,58 @@ export interface IntelligenceDashboardProps {
 export function IntelligenceDashboard({ userId, className }: IntelligenceDashboardProps) {
     const graph = useStore(graphStore);
     const [activeTab, setActiveTab] = useState<'overview' | 'decisions' | 'activity'>('overview');
+    const [loading, setLoading] = useState(true);
+
+    // Fetch active North and populate graphStore on mount
+    useEffect(() => {
+        if (!userId) {
+            setLoading(false);
+            return;
+        }
+
+        async function loadActiveNorth() {
+            try {
+                // First, get the active North ID
+                const activeRes = await fetch('/api/graph/active');
+                const activeData = await activeRes.json();
+
+                if (!activeData.northId) {
+                    console.log('No active North found');
+                    setLoading(false);
+                    return;
+                }
+
+                // Then, fetch the full graph data for that North
+                const graphRes = await fetch(`/api/graph/${activeData.northId}`);
+                const graphData = await graphRes.json();
+
+                if (graphData.north) {
+                    // Update the graphStore
+                    graphStore.set({
+                        north: graphData.north,
+                        bounds: graphData.bounds || [],
+                        signal: graphData.signal || { drift: 0, magnitude: 0 },
+                        loading: false,
+                        error: null,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load active North:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        loadActiveNorth();
+    }, [userId]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center p-12">
+                <div className="i-ph:spinner text-4xl text-bolt-elements-textTertiary animate-spin" />
+            </div>
+        );
+    }
 
     if (!graph.north || !userId) {
         return (

@@ -21,8 +21,8 @@ export interface KineticData {
  */
 export async function trackKineticServer(data: KineticData, env: any) {
     try {
-        // Call the kinetics API internally
-        const response = await fetch(`${env.API_BASE_URL || 'http://localhost:5173'}/api/graph/kinetics`, {
+        // Call the kinetics API internally with northId in path
+        const response = await fetch(`${env.API_BASE_URL || 'http://localhost:5173'}/api/graph/kinetics/${data.northId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

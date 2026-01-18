@@ -20,7 +20,25 @@ export default function Index() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+
+    // Handle initial North from onboarding
+    const params = new URLSearchParams(window.location.search);
+    const initialNorth = params.get('initialNorth');
+
+    if (initialNorth && ready && initialMessages.length === 0) {
+      // Create initial context message
+      const contextMessage = {
+        role: 'user' as const,
+        content: `I am starting a new project. My primary goal (North) is: "${initialNorth}". Please help me act on this immediately.`,
+        id: crypto.randomUUID(),
+        createdAt: new Date(),
+      };
+
+      storeMessageHistory([contextMessage]);
+      // Remove param from URL to prevent re-triggering
+      window.history.replaceState({}, '', '/');
+    }
+  }, [ready, initialMessages.length, storeMessageHistory]);
 
   if (!isClient || !ready) {
     return (
