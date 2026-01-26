@@ -199,6 +199,33 @@ async function chatAction({ context, request }: Route.ActionArgs) {
   }
 
   try {
+    // Inject strategic context if user is authenticated
+    if (userId) {
+      try {
+        const { getStrategicContext, formatContextMessage } = await import('~/lib/intelligence/context-injector.server');
+        const contextData = await getStrategicContext(userId, env);
+        const contextMessage = formatContextMessage(contextData);
+
+        if (contextMessage) {
+          logger.info('Injecting strategic context', { 
+            northId: contextData.northId,
+            hasVector: !!contextData.vector 
+          });
+          
+          // Insert as a system message at the start (or after existing system system prompts if any)
+          // Since we can't easily modify the internal system prompt of streamText, 
+          // we add it as a high-priority system message at the beginning of the array.
+          messages.unshift({
+            role: 'system',
+            content: contextMessage,
+          });
+        }
+      } catch (err) {
+        logger.error('Failed to inject context', err);
+        // Continue without context - don't block chat
+      }
+    }
+
     // Provider manager handles failover automatically
     // Will try: Google Gemini → OpenAI (Anthropic temporarily disabled)
     const result = await streamText(messages, env);

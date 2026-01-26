@@ -206,11 +206,11 @@ export const EditorPanel = memo(
         </Panel>
         <PanelResizeHandle />
         <Panel
-          // @ts-expect-error - react-resizable-panels v4 API compatibility (panelRef + onExpand/onCollapse)
           panelRef={terminalPanelRef}
           defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
           minSize={10}
           collapsible
+          // @ts-expect-error - react-resizable-panels v4 removed onExpand/onCollapse from types but they still work
           onExpand={() => {
             if (!terminalToggledByShortcut.current) {
               workbenchStore.toggleTerminal(true);

@@ -25,9 +25,12 @@ const IntelligenceDashboard = lazy(() => import('~/components/intelligence/Intel
 export interface IntelligenceLayerProps {
     userId: string | null;
     messageCount: number;
+    externalShowDashboard?: boolean;
+    onDashboardClose?: () => void;
+    onSendMessage?: (message: string) => void;
 }
 
-export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerProps) {
+export function IntelligenceLayer({ userId, messageCount, externalShowDashboard, onDashboardClose, onSendMessage }: IntelligenceLayerProps) {
     const graph = useStore(graphStore);
     const understanding = useUnderstanding(messageCount, userId);
     const vectors = useVectors(userId);
@@ -41,6 +44,13 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
     const [showDriftTimeline, setShowDriftTimeline] = useState(false);
     const [showDecisionHistory, setShowDecisionHistory] = useState(false);
     const [showDashboard, setShowDashboard] = useState(false);
+
+    // Sync external dashboard state
+    useEffect(() => {
+        if (externalShowDashboard !== undefined) {
+            setShowDashboard(externalShowDashboard);
+        }
+    }, [externalShowDashboard]);
 
     // Auto-generate vectors after Understanding is confirmed
     useEffect(() => {
@@ -215,6 +225,7 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                         vectors={vectors.vectors}
                         onSelect={vectors.selectVector}
                         onDismiss={vectors.clearVectors}
+                        onSendMessage={onSendMessage}
                     />
                 </Suspense>
             )}
@@ -357,7 +368,10 @@ export function IntelligenceLayer({ userId, messageCount }: IntelligenceLayerPro
                         <div className="flex items-center justify-between p-4 border-b border-bolt-elements-borderColor">
                             <h2 className="text-xl font-bold text-bolt-elements-textPrimary">Intelligence Dashboard</h2>
                             <button
-                                onClick={() => setShowDashboard(false)}
+                                onClick={() => {
+                                    setShowDashboard(false);
+                                    onDashboardClose?.();
+                                }}
                                 className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
                             >
                                 <div className="i-ph:x text-2xl" />

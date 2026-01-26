@@ -35,6 +35,8 @@ export interface Message {
  * Extract structured intent from conversation messages
  */
 export async function extractIntent(messages: Message[], apiKey: string): Promise<ExtractedIntent> {
+    const startTime = performance.now();
+
     const anthropic = new Anthropic({ apiKey });
 
     const conversationText = messages
@@ -130,6 +132,28 @@ Return format:
     // Validate and clean up
     if (!extracted.north || extracted.north.confidence < 70) {
         delete extracted.north;
+    }
+
+    // Track performance
+    const extractionTimeMs = performance.now() - startTime;
+
+    // Log performance metric (will be picked up by analytics if available)
+    if (typeof window !== 'undefined') {
+        try {
+            const { analytics } = await import('~/lib/analytics/posthog');
+            analytics.trackPerformance('intent_extraction_ms', extractionTimeMs);
+
+            if (extracted.north) {
+                analytics.intentExtracted({
+                    intent: extracted.north.statement,
+                    confidence: extracted.north.confidence,
+                    extractionTimeMs,
+                });
+            }
+        } catch (error) {
+            // Analytics not available in server context, that's okay
+            console.log(`Intent extraction took ${extractionTimeMs.toFixed(0)}ms`);
+        }
     }
 
     return extracted;

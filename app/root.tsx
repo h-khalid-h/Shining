@@ -5,6 +5,7 @@ import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { useEffect } from 'react';
+import { initAnalytics } from './lib/analytics/posthog';
 
 // Clerk integration
 import { ClerkProvider, SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/react-router';
@@ -51,7 +52,7 @@ const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
 
   function setTutorialKitTheme() {
-    let theme = localStorage.getItem('bolt_theme');
+    let theme = localStorage.getItem('gence_theme');
 
     if (!theme) {
       theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -87,6 +88,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App({ loaderData }: Route.ComponentProps) {
+  useEffect(() => {
+    // Initialize analytics on app load
+    initAnalytics();
+  }, []);
+
   return (
     <ClerkProvider loaderData={loaderData}>
       <Outlet />

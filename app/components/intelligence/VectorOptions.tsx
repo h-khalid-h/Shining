@@ -11,9 +11,10 @@ export interface VectorOptionsProps {
     vectors: Vector[];
     onSelect: (vector: Vector) => void;
     onDismiss: () => void;
+    onSendMessage?: (message: string) => void;
 }
 
-export function VectorOptions({ vectors, onSelect, onDismiss }: VectorOptionsProps) {
+export function VectorOptions({ vectors, onSelect, onDismiss, onSendMessage }: VectorOptionsProps) {
     return (
         <motion.div
             className={styles.container}
@@ -35,7 +36,13 @@ export function VectorOptions({ vectors, onSelect, onDismiss }: VectorOptionsPro
                         key={vector.id}
                         vector={vector}
                         index={index}
-                        onSelect={() => onSelect(vector)}
+                        onSelect={() => {
+                            onSelect(vector);
+                            if (onSendMessage) {
+                                const executionPrompt = `I have selected the strategy: **${vector.description}**. Please proceed with the Key Steps: ${vector.steps.slice(0, 3).join(', ')}.`;
+                                onSendMessage(executionPrompt);
+                            }
+                        }}
                     />
                 ))}
             </div>

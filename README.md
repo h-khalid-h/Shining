@@ -1,40 +1,57 @@
-# Shining - Intelligent Outcome Platform
+# Gence - AI-Powered Development with Strategic Intelligence
+
+**The only IDE that keeps you aligned with your goals**
 
 **Status:** 🚀 Production Ready - MVP Complete  
 **Version:** 1.0.0  
-**Last Updated:** January 15, 2026
+**Last Updated:** January 18, 2026
 
 ---
 
 ## Overview
 
-Shining is an intelligent outcome platform that helps users achieve their goals through AI-powered intent extraction, graph-based knowledge storage, and proactive intelligence features.
+Gence is an AI-powered development environment that combines intelligent code generation with strategic guidance. Unlike traditional AI coding assistants that just generate code, Gence understands your goals, tracks your progress, and keeps you strategically aligned throughout the development process.
 
 **Built with:** React Router v7, Clerk, Neo4j, Anthropic AI
 
 ---
 
-## Features
+## What Makes Gence Different?
 
 ### Intelligence Layer
-- ✅ AI-powered intent extraction (85%+ accuracy)
-- ✅ Graph database storage (Neo4j Aura)
-- ✅ Real-time signal calculation
-- ✅ Adaptive extraction (60% cost reduction)
-- ✅ Query caching (40% hit rate)
+- ✅ **Intent Extraction** - Automatically understands your goals from natural language (85%+ accuracy)
+- ✅ **Knowledge Graph** - Persistent decision history stored in Neo4j
+- ✅ **Drift Detection** - Proactive alerts when you veer off course
+- ✅ **Strategic Guidance** - AI-generated path options aligned with your objectives
+- ✅ **Real-time Signal Calculation** - Track progress and alignment metrics
 
-### User Features
-- ✅ **Understanding Card** - Shows extracted goals and constraints
-- ✅ **Vector Options** - AI-generated strategic path suggestions
-- ✅ **Drift Nudges** - Course correction alerts
-- ✅ **Graph Visualization** - Interactive decision map
-- ✅ **Multi-Project** - Manage multiple projects
+### Development Environment
+- ✅ **Full Browser IDE** - Code editor, terminal, file system, and preview
+- ✅ **AI Code Generation** - Powered by Claude 3.5 Sonnet
+- ✅ **WebContainer Integration** - Run Node.js directly in the browser
+- ✅ **Multi-Project Support** - Manage multiple projects with separate contexts
 
-### Platform
-- ✅ Clerk authentication
-- ✅ A/B testing framework
-- ✅ Analytics tracking
-- ✅ Performance optimized
+### User Experience
+- ✅ **Understanding Card** - Visual summary of extracted goals and constraints
+- ✅ **Vector Options** - Strategic path suggestions for achieving your goals
+- ✅ **Graph Visualization** - Interactive decision map showing your journey
+- ✅ **Activity Feed** - Track all development actions and decisions
+
+---
+
+## Gence vs. Competitors
+
+| Feature | Gence | Bolt.new | Cursor | GitHub Copilot |
+|---------|-------|----------|--------|----------------|
+| AI Code Generation | ✅ | ✅ | ✅ | ✅ |
+| **Intent Extraction** | ✅ | ❌ | ❌ | ❌ |
+| **Goal Tracking** | ✅ | ❌ | ❌ | ❌ |
+| **Drift Detection** | ✅ | ❌ | ❌ | ❌ |
+| **Knowledge Graph** | ✅ | ❌ | ❌ | ❌ |
+| **Strategic Planning** | ✅ | ❌ | ❌ | ❌ |
+| Browser-Based | ✅ | ✅ | ❌ | ❌ |
+
+> **Unique Value Proposition:** Gence is the only AI IDE that keeps you strategically aligned with your goals through intelligent intent extraction, proactive drift detection, and persistent knowledge graphs.
 
 ---
 

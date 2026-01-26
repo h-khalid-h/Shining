@@ -72,6 +72,24 @@ export function DriftNudge({
             )}
 
             <div className={styles.buttons}>
+                <button 
+                  className={styles.secondaryButton} 
+                  onClick={async () => {
+                    // Manual trigger for drift calculation
+                    try {
+                        const res = await fetch('/api/drift/calculate', { method: 'POST' });
+                        if (res.ok) {
+                             // Ideally we should reload the data here, but for now just acknowledge
+                             // The listener higher up should catch the graph update
+                             onAcknowledge(); 
+                        }
+                    } catch (e) {
+                        console.error('Failed to refresh drift', e);
+                    }
+                  }}
+                >
+                    🔄 Refresh Signal
+                </button>
                 <button className={styles.secondaryButton} onClick={onAcknowledge}>
                     Got it
                 </button>

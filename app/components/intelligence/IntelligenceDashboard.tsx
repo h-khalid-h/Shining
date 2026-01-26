@@ -102,28 +102,48 @@ export function IntelligenceDashboard({ userId, className }: IntelligenceDashboa
                         Intelligence Dashboard
                     </h1>
 
-                    <div className="flex gap-2">
-                        <TabButton
-                            active={activeTab === 'overview'}
-                            onClick={() => setActiveTab('overview')}
-                            icon="i-ph:chart-line"
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex gap-2">
+                            <TabButton
+                                active={activeTab === 'overview'}
+                                onClick={() => setActiveTab('overview')}
+                                icon="i-ph:chart-line"
+                            >
+                                Overview
+                            </TabButton>
+                            <TabButton
+                                active={activeTab === 'decisions'}
+                                onClick={() => setActiveTab('decisions')}
+                                icon="i-ph:path"
+                            >
+                                Decisions
+                            </TabButton>
+                            <TabButton
+                                active={activeTab === 'activity'}
+                                onClick={() => setActiveTab('activity')}
+                                icon="i-ph:activity"
+                            >
+                                Activity
+                            </TabButton>
+                        </div>
+                        <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch('/api/drift/calculate', { method: 'POST' });
+                                    if (res.ok) {
+                                        // Reload the page or re-fetch data to show new signal
+                                        window.location.reload(); 
+                                    }
+                                } catch (e) {
+                                    console.error('Failed to refresh drift', e);
+                                }
+                            }}
                         >
-                            Overview
-                        </TabButton>
-                        <TabButton
-                            active={activeTab === 'decisions'}
-                            onClick={() => setActiveTab('decisions')}
-                            icon="i-ph:path"
-                        >
-                            Decisions
-                        </TabButton>
-                        <TabButton
-                            active={activeTab === 'activity'}
-                            onClick={() => setActiveTab('activity')}
-                            icon="i-ph:activity"
-                        >
-                            Activity
-                        </TabButton>
+                           <div className="i-ph:arrows-clockwise mr-2" />
+                           Refresh Intelligence
+                        </Button>
                     </div>
                 </div>
             </div>
